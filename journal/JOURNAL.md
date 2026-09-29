@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `10_tuning` - done
-- **Last result:** 09 with tuned HGBR (lr 0.02, 1200 trees, 63 leaves, min_samples_leaf 200, max_features 0.8): RMSE 3.47 ± 0.08 (patient GroupKFold)
+- **Last experiment:** `11_ensemble` - done
+- **Last result:** ensemble (3 tuned HGBR 30% each + Ridge 10%, smoothed): RMSE 3.43 ± 0.07 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -49,6 +49,7 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `08_smoothing` | PatientSmoother: per-patient quadratic in age through 07's predictions | done | RMSE 3.68 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42789) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42783) | [08_smoothing.md](../experiments/08_smoothing.md) |
 | `09_patient_curve` | PatientCurveFeatures: per-patient quadratic of corrected estimates, curvature, residual spread, n readings; + 08 smoothing | done | RMSE 3.50 ± 0.08 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42885) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42878) | [09_patient_curve.md](../experiments/09_patient_curve.md) |
 | `10_tuning` | Randomized search (30 settings) on grouped CV + column-selection test; lr 0.02, 1200 trees, 63 leaves, leaf>=200, 80% columns | done | RMSE 3.47 ± 0.08 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/43284) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/43278) | [10_tuning.md](../experiments/10_tuning.md) |
+| `11_ensemble` | VotingRegressor: top-3 tuned HGBR (30% each) + Ridge (10%) on PatientCurveFeatures, per-patient smoothing | done | RMSE 3.43 ± 0.07 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/43438) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/43426) | [11_ensemble.md](../experiments/11_ensemble.md) |
 
 ## Backlog
 
@@ -57,4 +58,3 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | B9 | Mixed-effects model (patient random intercept + slope) as a model or stacking input | my-pick |
 | B10 | Missingness-pattern indicators (which of on/off/ledd/timing are missing), per visit and per patient | my-pick |
 | B11 | Error analysis by cohort / gene / missingness pattern from skore reports, then targeted features | my-pick |
-| B12 | Ensemble of best grouped-CV models | my-pick |
