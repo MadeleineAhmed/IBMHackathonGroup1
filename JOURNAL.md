@@ -24,7 +24,7 @@
 - [x] J-003 — Dev tooling scripts
 - [x] J-004 — Context folder & domain grounding
 - [x] J-005 — Hackathon spec ingestion & problem reframing (regression, not classification)
-- [ ] J-006 — Install skore-cli & configure Hub workspace
+- [x] J-006 — Install skore-cli & configure Hub workspace
 - [ ] J-007 — Download data from Kaggle & EDA
 - [ ] J-008 — Dummy regressor baseline (floor check)
 - [ ] J-009 — Ridge linear model
@@ -113,7 +113,7 @@ Created three scripts to eliminate environment-related friction on Arch Linux:
 |---|---|
 | [`activate.fish`](activate.fish) | Sets `PYENV_VERSION=skore` and prepends the virtualenv bin to `$PATH` for the current fish session. Source with `. activate.fish`. |
 | [`run.sh`](run.sh) | Resolves the correct Python binary via `pyenv which python` and `exec`s into it. Use instead of activating: `./run.sh script.py`, `./run.sh -m pytest ...`, `./run.sh -c "..."`. |
-| [`env_check.py`](env_check.py) | Sanity check — verifies all key imports and runs a live EstimatorReport + CrossValidationReport smoke test. All 14 checks pass. |
+| [`env_check.py`](env_check.py) | Sanity check — verifies all key imports and runs a live EstimatorReport + CrossValidationReport smoke test. All 15 checks pass. |
 
 #### Reasoning
 Arch Linux with `pyenv` + fish shell can produce subtle `$PATH` and shim resolution issues that waste hours. `run.sh` uses `exec` with the absolute binary path, bypassing all shell activation complexity. `env_check.py` gives a one-command go/no-go before starting a session.
@@ -203,16 +203,29 @@ The hackathon spec completely redefines the problem. All prior context docs assu
 ---
 
 ### J-006 — Install skore-cli & configure Hub workspace
-**Date:** —
-**Status:** ⏳ Pending
+**Date:** 2026-09-29
+**Status:** ✅ Done
 **Category:** Infrastructure
 
-#### Plan
-```bash
-./run.sh -m pip install --upgrade skore-cli
-./run.sh scripts/skore-agent   # opens browser → sign in → writes .skore
-```
-Confirm `.skore` exists with `workspace` matching the Kaggle team name.
+#### What was done
+- Installed `skore-cli` 0.4.1 and the lab skills (`skore skills install all --repo probabl-ai/skills-hackathon --agent bob`, release 0.1.0 → `.bob/skills/`, 14 skills).
+- Created Hub workspace [`ibmhackathongroup1`](https://skore.probabl.ai/ibmhackathongroup1) (matches Kaggle team name) and invited teammates.
+- Copied the lab's `scripts/skore-agent` into this repo so `.skore` is written at this repo's root; ran it → `.skore` (gitignored, mode 600).
+- Scaffolded the local `parkinson` package (`pyproject.toml`, `src/parkinson/__init__.py`, `src/parkinson/hub.py` = skill template `src_hub.py`), installed editable, so `from parkinson.hub import load_skore_credentials` works as in GUIDED.md.
+- Verified hub login via API key and created project [`ibm-hackathon`](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon) (empty).
+- Added team setup scripts: `setup/windows/setup.bat` (+ `setup.ps1`) and `setup/unix/setup.sh`, with `requirements.txt` (skore / skore-cli / skrub pinned) and `.gitattributes` for line endings. Unix script verified end-to-end on a clean copy; Windows script not yet run on Windows.
+
+#### API corrections found while verifying docs
+| Doc / guide said | Actual skore 0.26 |
+|---|---|
+| `project.put(key, comparison_report)` | `TypeError` — only `EstimatorReport` / `CrossValidationReport`; push `comp.reports_["name"]` |
+| `compare([est1, est2], X, y)` | `compare()` takes reports, not estimators |
+| `project.list_item_keys()` | Does not exist; use `project.summarize()` |
+| GUIDED.md step 13 `evaluate(pred)` | `ValueError`; use `evaluate(pred.skb.make_learner(), data={"visits": visits})` |
+| Skill doc project name `ibm-hackaton` | Use `ibm-hackathon` |
+
+#### Source
+- `inspect.getsource(skore.Project.put)`, `skore.evaluate` docstring; synthetic-data run of the DataOps pattern.
 
 ---
 
@@ -268,8 +281,8 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 
 ridge = make_pipeline(SimpleImputer(strategy="median"), Ridge(alpha=1.0))
-report = evaluate({"dummy": dummy, "ridge": ridge}, X, y)
-project.put("02_ridge", report)
+comp = evaluate({"dummy": dummy, "ridge": ridge}, X, y)   # ComparisonReport
+project.put("02_ridge", comp.reports_["ridge"])            # put() rejects ComparisonReport
 ```
 Try `alpha` in [0.1, 1.0, 10.0]. Metric: RMSE.
 
@@ -326,7 +339,8 @@ from sklearn.model_selection import GroupKFold
 
 data = skrub.var("visits", visits)
 groups = data["patient_id"]
-X_op = data.drop("target", axis=1).skb.mark_as_X(
+# drop ids too: Index / patient_id must not be features (errors="ignore": X_test has no target)
+X_op = data.drop(columns=["target", "patient_id", "Index"], errors="ignore").skb.mark_as_X(
     cv=GroupKFold(n_splits=5),
     split_kwargs={"groups": groups},
 )
@@ -334,7 +348,10 @@ y_op = data["target"].skb.mark_as_y()
 pred = X_op.skb.apply(skrub.TableVectorizer()).skb.apply(
     HistGradientBoostingRegressor(random_state=0), y=y_op
 )
-report = evaluate(pred)
+learner = pred.skb.make_learner()
+# NOTE: GUIDED.md's `evaluate(pred)` raises ValueError in skore 0.26 —
+# pass the learner plus its data bindings; cv/groups still come from the DataOp.
+report = evaluate(learner, data={"visits": visits})  # -> CrossValidationReport
 project.put("05_dataops", report)
 ```
 

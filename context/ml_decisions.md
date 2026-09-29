@@ -94,9 +94,13 @@ Preferred approaches:
 from sklearn.dummy import DummyRegressor
 from skore import evaluate
 model = DummyRegressor(strategy="mean")
-report = evaluate(model, X, y)
+report = evaluate(model, X, y)   # default splitter=0.2: random ROW holdout (as in GUIDED.md)
 ```
 Hub key: `01_dummy`
+
+> Steps 1–2 follow the guide and use the default random row holdout, which leaks
+> patients across the split. Their RMSE is optimistic and **not comparable** with
+> steps 3+. From step 3 on, always pass `splitter=cv_splits` (GUIDED.md step 10).
 
 ### Step 2 — Ridge (linear baseline)
 ```python
@@ -104,6 +108,11 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 model = make_pipeline(SimpleImputer(strategy="median"), Ridge(alpha=1.0))
+report = evaluate(model, X, y)
+
+# comparing dummy vs ridge returns a ComparisonReport, which put() rejects:
+comp = evaluate({"dummy": dummy, "ridge": model}, X, y)
+report = comp.reports_["ridge"]  # push this one
 ```
 Hub key: `02_ridge`
 
@@ -111,7 +120,9 @@ Hub key: `02_ridge`
 ```python
 from sklearn.ensemble import HistGradientBoostingRegressor
 model = HistGradientBoostingRegressor(random_state=0)
-# Do NOT impute — pass NaN directly
+# Do NOT impute — pass NaN directly. X = numeric feature_cols only
+# (gene / cohort are strings: add them later, or .astype("category"))
+report = evaluate(model, X, y, splitter=cv_splits)
 ```
 Hub key: `03_hgbr`
 
@@ -120,6 +131,7 @@ Hub key: `03_hgbr`
 from skrub import tabular_pipeline
 model = tabular_pipeline("regressor")
 X_full = visits.drop(columns=["Index", "patient_id", "target"])
+report = evaluate(model, X_full, y, splitter=cv_splits)
 ```
 Hub key: `04_tabular_pipeline`
 
@@ -128,7 +140,8 @@ Hub key: `04_tabular_pipeline`
 import skrub
 data = skrub.var("visits", visits)
 groups = data["patient_id"]
-X_op = data.drop("target", axis=1).skb.mark_as_X(
+# drop ids too: Index / patient_id must not be features (errors="ignore": X_test has no target)
+X_op = data.drop(columns=["target", "patient_id", "Index"], errors="ignore").skb.mark_as_X(
     cv=GroupKFold(n_splits=5),
     split_kwargs={"groups": groups},
 )
@@ -136,7 +149,10 @@ y_op = data["target"].skb.mark_as_y()
 pred = X_op.skb.apply(skrub.TableVectorizer()).skb.apply(
     HistGradientBoostingRegressor(random_state=0), y=y_op
 )
-report = evaluate(pred)  # reads cv/groups from the DataOp
+learner = pred.skb.make_learner()
+# NOTE: GUIDED.md's `evaluate(pred)` raises ValueError in skore 0.26 —
+# pass the learner plus its data bindings; cv/groups still come from the DataOp.
+report = evaluate(learner, data={"visits": visits})  # -> CrossValidationReport
 ```
 Hub key: `05_dataops`
 
@@ -147,12 +163,13 @@ Hub key: `05_dataops`
 ```python
 from sklearn.base import clone
 
-# Fit on ALL training data
-final = clone(model).fit(X_full, y)
+# X = the exact feature matrix the model was evaluated on
+# (X[feature_cols] for dummy/ridge/hgbr, X_full for tabular_pipeline)
+final = clone(model).fit(X, y)
 
-# Predict test
+# Predict test with the same columns
 submission = X_test[["Index"]].copy()
-submission["target"] = final.predict(X_test.drop(columns=["Index", "patient_id"], errors="ignore"))
+submission["target"] = final.predict(X_test[X.columns])
 submission.to_csv("submission.csv", index=False)
 ```
 
@@ -160,7 +177,8 @@ For DataOps/SkrubLearner:
 ```python
 learner = pred.skb.make_learner()
 learner.fit({"visits": visits})
-pred_test = learner.predict({"visits": X_test})
+submission = X_test[["Index"]].copy()
+submission["target"] = learner.predict({"visits": X_test})
 ```
 
 Then upload `submission.csv` to Kaggle with the Hub report URL in the Description field.
@@ -180,7 +198,11 @@ project.put("01_dummy", report)
 # Prints: Consult your report at https://skore.probabl.ai/…
 ```
 
-Note: `Project.get` uses the **id** from `project.summarize()`, not the string key passed to `put`.
+Notes:
+- Project name is `ibm-hackathon` (the skill doc's `ibm-hackaton` is a typo).
+- `put` only accepts `EstimatorReport` / `CrossValidationReport`; for a `ComparisonReport`
+  push `comp.reports_["<name>"]`.
+- `Project.get` uses the **id** from `project.summarize()`, not the string key passed to `put`.
 
 ---
 
@@ -191,7 +213,7 @@ Note: `Project.get` uses the **id** from `project.summarize()`, not the string k
 | `eda` | (reserved — do NOT use for models) | EDA only |
 | `01_dummy` | DummyRegressor baseline | First submission |
 | `02_ridge` | Ridge linear model | After dummy |
-| `03_hgbr` | HistGBR numeric-only | After ridge |
+| `03_hgbr` | HistGBR numeric-only (grouped CV) | After ridge |
 | `04_tabular_pipeline` | skrub full mixed | After HGBR |
 | `05_dataops` | skrub DataOps grouped | After tabular_pipeline |
 
