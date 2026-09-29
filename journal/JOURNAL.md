@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `06_patient_features` - done
-- **Last result:** Patient-level features + HGBR: RMSE 3.98 ± 0.06 (patient GroupKFold), -46% vs 05
+- **Last experiment:** `07_pk_correction` - done
+- **Last result:** PK-corrected readings + weighted patient trend + min_samples_leaf=100: RMSE 3.75 ± 0.06 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -45,12 +45,12 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `04_tabular_pipeline` | skrub tabular_pipeline: + cohort, gene; ids dropped | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42622) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42616) | [04_tabular_pipeline.md](../experiments/04_tabular_pipeline.md) |
 | `05_dataops` | skrub DataOps: TableVectorizer + HGBR, GroupKFold on mark_as_X | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42642) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42636) | [05_dataops.md](../experiments/05_dataops.md) |
 | `06_patient_features` | PatientFeatures (per-patient summaries + trend of off/on over age) + HGBR | done | RMSE 3.98 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42677) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42665) | [06_patient_features.md](../experiments/06_patient_features.md) |
+| `07_pk_correction` | PatientPKFeatures: ON ratio / OFF bias by dose timing (learned in-fold), weighted patient trend; min_samples_leaf=100 | done | RMSE 3.75 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42746) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42740) | [07_pk_correction.md](../experiments/07_pk_correction.md) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B7 | Pharmacokinetic features: residual-drug proxy from time_since_intake_off, on/off gap and ratio, ledd-adjusted | my-pick (context/levodopa_domain.md § 7, § 11) |
 | B8 | Monotonic constraint on disease duration (`monotonic_cst`) and/or per-patient smoothing of predictions | my-pick |
 | B9 | Mixed-effects model (patient random intercept + slope) as a model or stacking input | my-pick |
 | B10 | Missingness-pattern indicators (which of on/off/ledd/timing are missing), per visit and per patient | my-pick |

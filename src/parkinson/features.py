@@ -13,6 +13,7 @@ and valid on ``X_test`` (each test patient also has 4–12 visits).
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -99,3 +100,115 @@ class PatientFeatures(TransformerMixin, BaseEstimator):
 
         out.index = X.index
         return out
+
+
+# --- 07: pharmacokinetic correction ---------------------------------------
+
+TON_BINS = [-1, 0.5, 1, 1.5, 2, 3, 4, 6, 48]  # hours since intake, ON exam
+TOFF_BINS = [-1, 8, 10, 12, 15, 20, 48]  # hours since intake, OFF exam
+
+
+def _weighted_trend(
+    df: pd.DataFrame, values: pd.Series, weights: pd.Series
+) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Per-patient weighted least-squares line of ``values`` over ``age``.
+
+    Returns ``(trend, slope, total_weight)`` aligned on ``df``. Patients with
+    a single observation (or no age spread) get their weighted mean and
+    slope 0; patients with none get NaN.
+    """
+    obs = values.notna() & weights.notna()
+    w = weights.where(obs, 0.0)
+    g = df["patient_id"]
+    sw = w.groupby(g).transform("sum")
+    n = obs.groupby(g).transform("sum")
+    a = df["age"]
+    mean_a = (w * a).groupby(g).transform("sum") / sw
+    mean_v = (w * values.fillna(0)).groupby(g).transform("sum") / sw
+    da = a - mean_a
+    sxx = (w * da**2).groupby(g).transform("sum")
+    sxy = (w * da * (values.fillna(0) - mean_v)).groupby(g).transform("sum")
+    slope = (sxy / sxx).where((n >= 2) & (sxx > 0), 0.0)
+    trend = mean_v + slope * da
+    has = sw > 0
+    return trend.where(has), slope.where(has), sw
+
+
+class PatientPKFeatures(PatientFeatures):
+    """``PatientFeatures`` + timing-corrected estimates of the target.
+
+    Learned in ``fit`` from the training fold only:
+
+    - ON ratio curve: median of ``on / target`` per bin of
+      ``time_since_intake_on`` (the drug still working lowers the ON score);
+    - OFF bias curve: mean of ``off - target`` per bin of
+      ``time_since_intake_off``;
+    - the residual variance of each corrected reading, used as
+      inverse-variance weights.
+
+    ``transform`` turns every reading into a target estimate
+    (``on / ratio``, ``off - bias``), combines them per visit, and fits a
+    weighted line per patient over age through those estimates.
+    """
+
+    def fit(self, X, y):
+        super().fit(X, y)
+        d = X.assign(_y=np.asarray(y, dtype=float))
+
+        on = d.dropna(subset=["on"])
+        on = on[on["_y"] > 0]
+        ratio = on["on"] / on["_y"]
+        self.on_ratio_ = ratio.groupby(
+            pd.cut(on["time_since_intake_on"], TON_BINS), observed=False
+        ).median()
+        self.on_ratio_na_ = float(ratio[on["time_since_intake_on"].isna()].median())
+
+        off = d.dropna(subset=["off"])
+        bias = off["off"] - off["_y"]
+        self.off_bias_ = bias.groupby(
+            pd.cut(off["time_since_intake_off"], TOFF_BINS), observed=False
+        ).mean()
+        self.off_bias_na_ = float(bias[off["time_since_intake_off"].isna()].mean())
+
+        e_on, e_off = self._estimates(d)
+        self.var_on_ = float(((e_on - d["_y"]) ** 2).mean())
+        self.var_off_ = float(((e_off - d["_y"]) ** 2).mean())
+        return self
+
+    def _estimates(self, df):
+        r = (
+            pd.cut(df["time_since_intake_on"], TON_BINS)
+            .map(self.on_ratio_)
+            .astype(float)
+            .fillna(self.on_ratio_na_)
+        )
+        b = (
+            pd.cut(df["time_since_intake_off"], TOFF_BINS)
+            .map(self.off_bias_)
+            .astype(float)
+            .fillna(self.off_bias_na_)
+        )
+        return df["on"] / r, df["off"] - b
+
+    def transform(self, X):
+        out = super().transform(X)
+        df = X.reset_index(drop=True)
+        e_on, e_off = self._estimates(df)
+        w_on = pd.Series(1 / self.var_on_, index=df.index).where(e_on.notna())
+        w_off = pd.Series(1 / self.var_off_, index=df.index).where(e_off.notna())
+        w = w_on.fillna(0) + w_off.fillna(0)
+        est = (e_on.fillna(0) * w_on.fillna(0) + e_off.fillna(0) * w_off.fillna(0)) / w
+        est = est.where(w > 0)
+
+        new = pd.DataFrame(index=df.index)
+        new["est_on"] = e_on
+        new["est_off"] = e_off
+        new["est"] = est
+        new["p_est_trend"], new["p_est_slope"], new["p_est_weight"] = _weighted_trend(
+            df, est, w.where(w > 0)
+        )
+        new["p_est_mean"] = est.groupby(df["patient_id"]).transform("mean")
+        new["p_est_on_trend"], _, _ = _weighted_trend(df, e_on, w_on)
+        new["p_est_off_trend"], _, _ = _weighted_trend(df, e_off, w_off)
+        new.index = out.index
+        return pd.concat([out, new], axis=1)
