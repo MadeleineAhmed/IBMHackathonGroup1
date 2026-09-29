@@ -16,17 +16,20 @@ class PatientSmoother(RegressorMixin, BaseEstimator):
     predictions wiggle around that curve. After ``estimator`` predicts,
     this fits, per patient, a polynomial of ``degree`` over ``age`` through
     the predictions (``degree="isotonic"``: best non-decreasing fit) and
-    returns ``blend * smoothed + (1 - blend) * raw``.
+    returns ``blend * smoothed + (1 - blend) * raw``. With ``rising=True``
+    the fitted curve is then projected onto non-decreasing values (the true
+    score never decreases between visits), which mostly helps last visits.
 
     Uses only ``patient_id`` and ``age`` from ``X`` at predict time; with
     patient-grouped CV every patient is entirely in train or in validation,
     so nothing leaks across patients.
     """
 
-    def __init__(self, estimator, degree=2, blend=1.0):
+    def __init__(self, estimator, degree=2, blend=1.0, rising=False):
         self.estimator = estimator
         self.degree = degree
         self.blend = blend
+        self.rising = rising
 
     def fit(self, X, y):
         self.estimator_ = clone(self.estimator).fit(X, y)
@@ -45,5 +48,7 @@ class PatientSmoother(RegressorMixin, BaseEstimator):
                 fit = np.polyval(np.polyfit(age, pred, self.degree), age)
             else:
                 continue
+            if self.rising and self.degree != "isotonic":
+                fit = IsotonicRegression().fit_transform(age, fit)
             smooth.loc[idx] = fit
         return (self.blend * smooth + (1 - self.blend) * raw).to_numpy()

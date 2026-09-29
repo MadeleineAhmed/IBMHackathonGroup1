@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `13_ensemble` - done
-- **Last result:** ensemble (3 tuned HGBR 30% + Ridge 10%) on personal-calibration features: RMSE 3.26 ± 0.06 (patient GroupKFold)
+- **Last experiment:** `14_refinements` - done
+- **Last result:** 12 + distance-to-OFF features + rising-only smoothing: RMSE 3.27 ± 0.06 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -53,6 +53,7 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `B9_bayes_curve` | Empirical-Bayes posterior of each patient's quadratic curve (prior learned from training patients' target curves, readings as noisy observations) added as features | abandoned | grouped CV 3.472 vs 3.467 without (Bayes curve alone 5.42): the trees already extract this from n readings + residual spread | — (prototype only) |
 | `12_personal_calibration` | PatientPersonalFeatures: per-patient ON response factor from visits with both readings (shrunk), missing-value patterns | done | RMSE 3.29 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/43721) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/43715) | [12_personal_calibration.md](../experiments/12_personal_calibration.md) |
 | `13_ensemble` | 11's blend (3 tuned HGBR 30% each + Ridge 10%, smoothed) rebuilt on PatientPersonalFeatures | done | RMSE 3.26 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/44049) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/44019) | [13_ensemble.md](../experiments/13_ensemble.md) |
+| `14_refinements` | PatientDistanceFeatures (gap to nearest OFF reading, its estimate, gap to last visit) + PatientSmoother(rising=True); log/sqrt target tried and dropped | done | RMSE 3.27 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/44348) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/44324) | [14_refinements.md](../experiments/14_refinements.md) |
 
 ## Backlog
 

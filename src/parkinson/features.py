@@ -333,3 +333,41 @@ class PatientPersonalFeatures(PatientCurveFeatures):
 
         new.index = out.index
         return pd.concat([out, new], axis=1)
+
+
+# --- 14: distance to the patient's real OFF readings ----------------------
+
+
+class PatientDistanceFeatures(PatientPersonalFeatures):
+    """``PatientPersonalFeatures`` + how far each visit is from real OFF data.
+
+    Error analysis of 12: patients with few OFF readings and the last
+    visits are the worst. For each visit this adds the age gap to the
+    patient's nearest visit with an OFF reading, the corrected OFF estimate
+    at that visit, and the age gap to the patient's last visit.
+    """
+
+    def transform(self, X):
+        out = super().transform(X)
+        df = X.reset_index(drop=True)
+        _, e_off = self._estimates(df)
+        ages = df["age"].to_numpy()
+        e_off = e_off.to_numpy()
+        dist = np.full(len(df), np.nan)
+        nearest = np.full(len(df), np.nan)
+        to_last = np.full(len(df), np.nan)
+        for _, idx in df.groupby("patient_id").groups.items():
+            idx = np.asarray(idx)
+            a = ages[idx]
+            to_last[idx] = a.max() - a
+            has_off = ~np.isnan(e_off[idx])
+            if has_off.any():
+                gaps = np.abs(a[:, None] - a[has_off][None, :])
+                j = gaps.argmin(axis=1)
+                dist[idx] = gaps[np.arange(len(a)), j]
+                nearest[idx] = e_off[idx][has_off][j]
+        new = pd.DataFrame(
+            {"dist_nearest_off": dist, "est_off_nearest": nearest, "age_to_last": to_last},
+            index=out.index,
+        )
+        return pd.concat([out, new], axis=1)
