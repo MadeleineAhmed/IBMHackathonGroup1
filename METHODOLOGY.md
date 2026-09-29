@@ -2,6 +2,8 @@
 
 IBM × Probabl Hackathon · Group 1 · Kaggle `ibm-probabl-hackathon`
 
+*(Version française : [`METHODOLOGIE.md`](METHODOLOGIE.md))*
+
 ---
 
 ## The one-slide version
