@@ -86,7 +86,10 @@ def main() -> None:
     # Dummy (reference) + Ridge cote a cote dans le meme rapport
     dummy = DummyRegressor(strategy="mean")
     ridge = make_pipeline(
-        SimpleImputer(strategy="median"),  # Ridge ne gere pas les NaN
+        # Ridge ne gere pas les NaN : on remplit par la mediane, et
+        # add_indicator=True ajoute une colonne 0/1 "etait manquant" par
+        # feature, pour garder le signal "examen OFF saute".
+        SimpleImputer(strategy="median", add_indicator=True),
         Ridge(alpha=args.alpha),
     )
 
@@ -97,19 +100,23 @@ def main() -> None:
 
     # Submission : Ridge fit sur tout le train, predit sur X_test
     final_model = clone(ridge).fit(X, y)
-    submission = sample_submission[["Index"]].copy()
+    # Index pris dans X_test : garantit que chaque prediction reste sur sa visite
+    submission = X_test[["Index"]].copy()
     submission["target"] = final_model.predict(X_test[FEATURE_COLS])
+    if set(submission["Index"]) != set(sample_submission["Index"]):
+        raise ValueError("Submission Index does not match sample_submission.csv")
 
     output_path = Path(args.output)
     if not output_path.is_absolute():
         output_path = root / output_path
     submission.to_csv(output_path, index=False)
-    print(f"Wrote {output_path.relative_to(root)}")
+    print(f"Wrote {output_path}")
 
     if args.no_hub:
         print("Skipped Skore Hub upload (--no-hub).")
     else:
-        push_to_hub(report)
+        # project.put() refuse un ComparisonReport : on pousse le rapport Ridge seul
+        push_to_hub(report.reports_["ridge"])
 
 
 if __name__ == "__main__":

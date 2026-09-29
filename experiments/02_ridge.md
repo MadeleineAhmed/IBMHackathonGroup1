@@ -1,161 +1,116 @@
 # Étape 8 — Ridge : premier modèle linéaire
 
-## Ce qu'on a fait
-
-On a remplacé le **dummy** (qui prédisait toujours la même valeur) par un **modèle linéaire Ridge**.
-Ridge regarde les features numériques du patient (âge, dose, scores cliniques) et apprend
-une combinaison de poids pour prédire le vrai score OFF.
-
-Script : `experiments/02_ridge.py`  
-Hub key : `02_ridge`  
-Submission : `submission_02_ridge.csv`
+| | |
+|---|---|
+| **Script** | `experiments/02_ridge.py` |
+| **Hub key** | `02_ridge` |
+| **Submission** | `submission_02_ridge.csv` |
+| **Features** | 8 colonnes numériques : `sexM`, `age_at_diagnosis`, `age`, `ledd`, `time_since_intake_on`, `time_since_intake_off`, `on`, `off` |
 
 ---
 
 ## Résultats
 
-| Modèle | RMSE | Gain vs dummy |
-|---|---|---|
-| Dummy (moyenne = 37.47) | 16.48 | référence |
-| **Ridge (alpha=1.0)** | **10.39** | **−37%** |
+| Modèle | RMSE (split aléatoire 80/20) | RMSE (GroupKFold par patient) | Gain vs dummy |
+|---|---|---|---|
+| Dummy (moyenne = 37.47) | 16.48 | — | référence |
+| Ridge, imputation médiane seule | 10.39 | 10.44 | −37 % |
+| **Ridge + indicateurs de valeurs manquantes** | **8.53** | **8.54** | **−48 %** |
 
-Le Ridge bat largement le dummy. Les features numériques portent un vrai signal.
+- Le split aléatoire (celui du guide pour cette étape) et le GroupKFold par patient donnent quasiment le même score : un modèle linéaire ne peut pas « mémoriser » un patient, donc la fuite entre visites d'un même patient reste faible ici.
+- À partir de l'étape 10, on compare tous les modèles en **GroupKFold par patient**.
 
-### Comparaison des alphas testés
+### Paramètre `alpha`
 
 | alpha | RMSE Ridge |
 |---|---|
-| 0.1 | 10.3869 |
-| **1.0** | **10.3869** |
-| 10.0 | 10.3869 |
-| 100.0 | 10.3870 |
+| 0.1 | 8.5305 |
+| **1.0** | **8.5305** |
+| 10.0 | 8.5305 |
+| 100.0 | 8.5311 |
 
-→ L'alpha a très peu d'impact ici. On garde `alpha=1.0` (valeur par défaut).
+`alpha` n'a presque aucun effet : avec ~35 000 visites d'entraînement et seulement 14 colonnes, la régularisation est négligeable devant la quantité de données. On garde `alpha=1.0`.
 
 ---
 
-## Comment ça marche — Ridge expliqué
+## Comment ça marche
 
-### Le dummy (étape précédente)
-
-```python
-DummyRegressor(strategy="mean")
-# Prédit toujours : 37.47
-# Ignore toutes les features
-```
+Ridge apprend une **équation linéaire** : une somme pondérée des features.
 
 ```
-Visite patient A (age=52, off=44)  →  37.47
-Visite patient B (age=70, off=NaN) →  37.47   ← même chose pour tout le monde
+target ≈ intercept + Σ (poids × feature)
 ```
 
-### Ridge
+Ridge ne sait pas traiter les valeurs manquantes (`NaN`), d'où le pipeline :
 
 ```python
 make_pipeline(
-    SimpleImputer(strategy="median"),
+    SimpleImputer(strategy="median", add_indicator=True),
     Ridge(alpha=1.0),
 )
 ```
 
-Ridge apprend une équation linéaire :
+1. **`SimpleImputer(strategy="median")`** remplace chaque `NaN` par la médiane de la colonne.
+2. **`add_indicator=True`** ajoute, pour chaque colonne qui a des trous, une colonne 0/1 « cette valeur était manquante ».
+3. **`Ridge`** apprend un poids pour les 8 features + les 6 indicateurs.
 
-```
-target ≈ intercept
-       + poids_age              × age
-       + poids_age_at_diagnosis × age_at_diagnosis
-       + poids_ledd             × ledd
-       + poids_on               × on
-       + poids_off              × off
-       + poids_time_on          × time_since_intake_on
-       + poids_time_off         × time_since_intake_off
-       + poids_sexM             × sexM
-```
+### Pourquoi les indicateurs changent tout (10.39 → 8.53)
 
-**Exemple concret :**
-```
-Patient 52 ans, off=44, ledd=607  →  Ridge prédit ≈ 38.5
-Patient 70 ans, off=80, ledd=900  →  Ridge prédit ≈ 55.2
-Patient 48 ans, off=NaN, ledd=NaN →  Ridge prédit ≈ 31.0  (NaN remplacés par médiane)
-```
+Sans indicateur, un `off` manquant devient simplement `off = médiane` : le modèle ne peut plus distinguer « OFF mesuré à la valeur médiane » de « examen OFF sauté ». Or un examen sauté est une information (le patient n'a été vu qu'en ON, protocole de la cohorte…).
 
----
+Avec l'indicateur, le modèle apprend une **correction** quand la valeur manquait. Poids appris (modèle entraîné sur tout le train) :
 
-## Le rôle de SimpleImputer
-
-Ridge **ne peut pas** travailler avec des valeurs manquantes (`NaN`).
-On doit donc remplir les trous **avant** de lui donner les données.
-
-```
-Données brutes          Après SimpleImputer       Ridge prédit
-off = NaN        →      off = 37.0 (médiane)  →   target = 34.2
-ledd = NaN       →      ledd = 600.0 (médiane) →
-```
-
-### Pourquoi c'est une limitation
-
-En remplissant les NaN avec la médiane, on **cache le signal** :
-
-```
-off = NaN  →  signifie : "l'exam OFF était trop inconfortable, il a été sauté"
-           →  c'est une information clinique sur la sévérité du patient
-           →  SimpleImputer efface cette information
-```
-
-C'est pour ça qu'on passera à **HGBR** (étape 10) qui gère les NaN nativement
-et peut apprendre que "off manquant" est un signal en soi.
-
----
-
-## Le paramètre alpha — régularisation
-
-`alpha` contrôle à quel point Ridge "bride" ses poids :
-
-```
-alpha petit (0.1)  →  poids libres  →  peut sur-apprendre le bruit
-alpha grand (100)  →  poids bridés  →  modèle plus conservateur
-```
-
-**Dans nos données :** l'alpha change presque rien (RMSE identique à 4 décimales).
-Cela suggère que le signal est fort et stable — le modèle n'a pas besoin de régularisation
-agressive sur ces features.
-
----
-
-## Ce que Ridge ne peut pas faire
-
-| Limitation | Conséquence |
+| Colonne | Poids |
 |---|---|
-| Modèle **linéaire** uniquement | Ne capte pas les interactions (ex: `age × ledd`) |
-| Pas de NaN natifs | Perd le signal "off manquant" |
-| Pas de features catégorielles | `gene` et `cohort` ignorés |
-| Pas de CV par patient | Splitter aléatoire → potentiel leakage |
+| `on` | +0.56 |
+| `off` | +0.55 |
+| `age` | +0.34 |
+| `age_at_diagnosis` | −0.28 |
+| `time_since_intake_on` | +1.10 |
+| **`on` manquant** | **−9.72** |
+| **`off` manquant** | **+6.93** |
+| autres indicateurs | entre −0.23 et +0.44 |
 
-Ces limites sont exactement ce qu'on corrige dans les étapes suivantes :
-- **Étape 10** : GroupKFold (CV par patient, pas de leakage)
-- **Étape 11** : HGBR (NaN natifs, interactions)
-- **Étape 12** : skrub tabular_pipeline (ajoute `gene` / `cohort`)
+Lecture : l'indicateur corrige l'erreur introduite par le remplissage à la médiane — environ +7 points quand `off` manque, −10 points quand `on` manque. Ces deux indicateurs portent l'essentiel du gain.
+
+### Exemples réels (deux visites du patient `IPLP5212`)
+
+| Visite | `on` | `off` | Vrai `target` | Prédiction Ridge |
+|---|---|---|---|---|
+| âge 52.1 | 7 | manquant | 34.7 | 34.1 |
+| âge 53.0 | 12 | 44 | 38.1 | 41.6 |
 
 ---
 
-## Commandes utilisées
+## Limites (corrigées dans les étapes suivantes)
 
-```powershell
-# Test local (sans push Hub)
+| Limite | Étape qui la traite |
+|---|---|
+| Modèle **linéaire** : pas d'interactions (ex. effet de l'heure de la dose qui dépend du score) | Étape 11 — HistGradientBoosting |
+| Split aléatoire par visite pour l'évaluation | Étape 10 — GroupKFold par patient |
+| `gene` et `cohort` (texte) ignorés | Étape 12 — skrub `tabular_pipeline` |
+| Chaque visite est prédite seule, sans les autres visites du même patient | Au-delà du guide — features par patient (voir `context/ml_decisions.md`) |
+
+---
+
+## Points techniques
+
+- **Rapport Hub** : le script évalue dummy et Ridge ensemble (`ComparisonReport`) pour afficher la comparaison, mais `project.put()` n'accepte que `EstimatorReport` / `CrossValidationReport`. On pousse donc `report.reports_["ridge"]`. Le Hub calcule de lui-même la comparaison au dummy (check SKD002).
+- **Submission** : l'`Index` est pris dans `X_test` (et vérifié contre `sample_submission.csv`) pour que chaque prédiction reste alignée sur sa visite.
+
+---
+
+## Commandes
+
+```bash
+# Test local, sans push Hub
 python experiments/02_ridge.py --no-hub
 
-# Test avec différents alpha
-python experiments/02_ridge.py --no-hub --alpha 0.1
-python experiments/02_ridge.py --no-hub --alpha 10.0
-python experiments/02_ridge.py --no-hub --alpha 100.0
+# Autre valeur d'alpha
+python experiments/02_ridge.py --no-hub --alpha 10
 
-# Push Hub + génération submission
+# Push Hub (rapport Ridge) + génération de la submission
 python experiments/02_ridge.py
 ```
 
-## Fichiers produits
-
-| Fichier | Contenu |
-|---|---|
-| `submission_02_ridge.csv` | Prédictions sur X_test à uploader sur Kaggle |
-| Hub key `02_ridge` | Rapport skore avec comparaison dummy vs ridge |
+Ensuite : uploader `submission_02_ridge.csv` sur Kaggle et coller l'URL du rapport Hub (affichée par le script) dans la **Submission Description**.
