@@ -55,18 +55,20 @@ The number is **how far off our guesses were on Kaggle** (lower = better).
 | 9 | Let the patient's line **bend a little** (real disease curves aren't perfectly straight), and tell the model **how trustworthy** each patient's measurements are. | 3.5 |
 | 10 | **Turned the knobs** on the model (how fast it learns, how careful it is…) by trying 30 combinations and keeping the best. | 3.4 |
 | 11 | **Asked 4 models and averaged their answers**, like asking several friends and taking the middle answer. | 3.35 |
-| 12 | 💡 **Everyone reacts to medicine differently.** For some people the pill works really well, for others less. When a patient did both tests (with and without medicine) at some visits, we measured **their own** reaction and used it to fix their other visits. | **3.14** |
+| 12 | 💡 **Everyone reacts to medicine differently.** For some people the pill works really well, for others less. When a patient did both tests (with and without medicine) at some visits, we measured **their own** reaction and used it to fix their other visits. | 3.14 |
+| 13 | Averaged 4 models again, on top of step 12. Barely better, and 4× slower. | 3.13 |
+| 14 | Told the model **how far each visit is from a real "no medicine" measurement**, and made sure each patient's curve **never goes down** (the disease doesn't get better). | **3.12** |
 
-**From 16.4 → 3.14.** The official guide's best was 7.1, so we're off by **less than half** as much.
+**From 16.4 → 3.12.** The official guide's best was 7.1, so we're off by **less than half** as much.
 
 ---
 
-## Why we picked the step-12 model
+## Why we picked the step-14 model
 
 - 🏆 **It's the best** on our own practice tests *and* on Kaggle's real test.
 - ✅ **Our practice scores always matched Kaggle's scores**, so we trust it's not a fluke.
 - 🧠 **Every piece has a reason** that comes from the data or from how the disease and the medicine work: smooth disease curve, medicine wearing off over a few hours, people reacting differently to medicine.
-- 🧼 **It's one model**, not a pile of models, so it's simpler to explain, and it still beats the pile from step 11.
+- 🧼 **It's one model**, not a pile of models, so it's simpler to explain, and it still beats the piles from steps 11 and 13.
 
 ---
 

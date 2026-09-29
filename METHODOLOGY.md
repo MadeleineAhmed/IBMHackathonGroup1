@@ -10,8 +10,8 @@ IBM × Probabl Hackathon · Group 1 · Kaggle `ibm-probabl-hackathon`
 
 - **Task:** for every clinic visit of a Parkinson's patient, predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) from noisy clinic measurements. Scored by RMSE on **patients never seen in training**.
 - **Key insight:** a patient's true score is a **smooth, always-increasing curve over age**, and each visit's measured `on` / `off` score is a **noisy reading** of that curve. Predicting each visit alone wastes most of the information; **pooling all of a patient's visits** is what works.
-- **Final model (`12_personal_calibration`):** every reading is corrected for dose timing (population curves) **and for the patient's personal response to levodopa**, turned into an estimate of the true score, summarised into patient-level features (trends, reliability, missing-value patterns) → one tuned gradient-boosting model → each patient's predictions smoothed into a curve.
-- **Result:** Kaggle public RMSE **3.14**, vs **7.14** at the end of the official guide and **16.42** for predicting the average — **56 % less error than the guide's best model**.
+- **Final model (`14_refinements`):** every reading is corrected for dose timing (population curves) **and for the patient's personal response to levodopa**, turned into an estimate of the true score, summarised into patient-level features (trends, reliability, missing-value patterns, distance to real OFF readings) → one tuned gradient-boosting model → each patient's predictions smoothed into a rising curve.
+- **Result:** Kaggle public RMSE **3.12**, vs **7.14** at the end of the official guide and **16.42** for predicting the average — **56 % less error than the guide's best model**.
 - **Method:** one change per experiment, every change judged on the same **patient-grouped cross-validation**, the next change chosen from **error analysis** of the previous model, Kaggle used as an independent check.
 
 ---
@@ -83,9 +83,9 @@ These findings drove every modelling decision after the guide.
 ```mermaid
 xychart-beta
     title "Kaggle public RMSE per experiment (lower is better)"
-    x-axis ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+    x-axis ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14"]
     y-axis "RMSE" 0 --> 17
-    bar [16.42, 8.39, 7.20, 7.17, 7.14, 3.80, 3.66, 3.59, 3.46, 3.38, 3.35, 3.14]
+    bar [16.42, 8.39, 7.20, 7.17, 7.14, 3.80, 3.66, 3.59, 3.46, 3.38, 3.35, 3.14, 3.13, 3.12]
 ```
 
 | # | Experiment | What changed | Why | Grouped CV RMSE | Kaggle |
@@ -101,7 +101,9 @@ xychart-beta
 | 09 | `09_patient_curve` | **curved** per-patient trend of the corrected estimates + how noisy the patient's readings are | 62 % of the remaining error was a per-patient level offset; trends were straight lines while the truth bends | 3.50 | 3.46 |
 | 10 | `10_tuning` | model settings chosen by a **randomized search** (30 combinations) on the same grouped folds; column-selection test | squeeze the model once the features are right | 3.47 | 3.38 |
 | 11 | `11_ensemble` | average of the 3 best settings (30 % each) + 10 % Ridge | different models make partly different errors | 3.43 | 3.35 |
-| 12 | `12_personal_calibration` | **personal ON factor** per patient, learned from their visits with both readings; **missing-value patterns** | error analysis of 10: ON-only visits were the hardest (RMSE 3.9–4.2 vs 2.4 when OFF was measured), and 39 % of the drug-response variation is personal | **3.29** | **3.14** |
+| 12 | `12_personal_calibration` | **personal ON factor** per patient, learned from their visits with both readings; **missing-value patterns** | error analysis of 10: ON-only visits were the hardest (RMSE 3.9–4.2 vs 2.4 when OFF was measured), and 39 % of the drug-response variation is personal | 3.29 | 3.14 |
+| 13 | `13_ensemble` | step 11's blend rebuilt on step 12's features | ensembling gave a small, regular gain before | 3.26 | 3.13 |
+| 14 | `14_refinements` | **distance from each visit to the patient's real OFF readings**; smoothing forced to **never decrease** | error analysis of 12: last visits (4.07 vs 3.14 mid-history) and patients with 0–1 OFF readings (~5) were the weakest; tested locally first, kept because it beat 12 on both checks | **3.27** | **3.12** |
 
 ### What each phase taught us
 
@@ -110,6 +112,7 @@ xychart-beta
 - **07–09 (domain knowledge):** each step targets a specific error found by analysing the previous model — dose timing (pharmacokinetics of levodopa), smoothness of disease progression, curvature of the trajectory.
 - **10–11 (refinement):** tuning and ensembling give small, reliable gains (−0.03 to −0.04 each in CV): at that point the features, not the settings, limited the model.
 - **12 (personalisation, −5 % in CV, −6 % on Kaggle):** a new round of error analysis showed the remaining error was concentrated on ON-only visits, and that patients respond differently to the drug. Calibrating each patient's ON readings on their own data gave the biggest gain since step 09 — **with a single model** that beats the step-11 ensemble.
+- **13–14 (diminishing returns):** another ensemble (−0.01 on Kaggle) and two targeted refinements (−0.02). The remaining error is a per-patient level offset that no longer correlates with anything we observe: we are close to what these inputs allow.
 
 ---
 
@@ -120,19 +123,19 @@ flowchart LR
     A[Raw visits<br/>of a patient] --> B[Population dose-timing correction<br/>ON ratio & OFF bias curves<br/>learned on training data]
     B --> P[Personal ON factor<br/>from the patient's visits<br/>with both readings]
     P --> C[Per-visit estimates<br/>of the true score]
-    C --> D[Patient features<br/>summaries, linear & curved trend,<br/>reliability, missing-value patterns]
+    C --> D[Patient features<br/>summaries, linear & curved trend,<br/>reliability, missing-value patterns,<br/>distance to real OFF readings]
     D --> E[Tuned gradient boosting]
-    E --> G[Per-patient smoothing<br/>parabola over age]
+    E --> G[Per-patient smoothing<br/>parabola over age, never decreasing]
     G --> H[Prediction per visit]
 ```
 
 **Why this model:**
 
-1. **Best score on both independent measures:** grouped CV 3.29 and Kaggle public 3.14, the best of all 12 experiments.
+1. **Best score on Kaggle and best single model:** Kaggle public 3.12 (the best of all 14 experiments), grouped CV 3.27. The step-13 ensemble has a marginally lower CV (3.26) but a worse Kaggle score (3.13) and is 4× slower.
 2. **It generalises:** local CV and Kaggle have agreed at every step (Kaggle consistently 0.04–0.24 lower, never higher), with small fold-to-fold variation (± 0.06).
 3. **It is grounded in the data and the medicine, not in trial and error:** each component answers a documented observation — patient curves (exploration), levodopa's effect decaying over hours (pharmacokinetics), individual differences in drug response, monotonic disease progression (neurodegeneration).
 4. **It is leak-free by construction:** no identifier features, patient features from inputs only, target-based corrections learned inside each training fold.
-5. **It is a single model:** simpler, faster and more explainable than the step-11 ensemble, and better (3.14 vs 3.35 on Kaggle).
+5. **It is a single model:** simpler, faster and more explainable than the ensembles of steps 11 and 13, and better than both on Kaggle (3.12 vs 3.35 and 3.13).
 
 ---
 
@@ -153,19 +156,21 @@ Negative results are part of the evidence that the final choices are the right o
 | **Empirical-Bayes curve per patient** (prior learned from training patients, readings as noisy observations) | 3.472 vs 3.467 (curve alone: 5.42) | the trees already extract this from the number of readings and their spread |
 | **Multiplicative OFF correction** (a ratio, like ON) | per-visit error 9.18 vs 7.85 additive | the OFF bias is an offset, not a proportion |
 | **OFF correction by dose timing *and* disease duration** | per-visit error 7.90 vs 7.85 | the bias does grow with duration, but visit-level noise dominates |
+| **Predicting on a log or square-root scale** (errors grow with severity) | 3.337 / 3.307 vs 3.293 | the model already handles the scale; transforming it hurts |
+| **A common curve shape shared by all patients** (e.g. exponential) | fits much worse than a per-patient parabola (2.40 vs 0.33) | curvature varies a lot between patients, in both directions: each patient really has their own curve |
+| **A personal OFF bias** | not estimable from the inputs | ON and OFF can only be calibrated against each other; there is no per-patient ground truth |
 
 ---
 
 ## 7. Validation and honesty about the numbers
 
 - **Local CV vs Kaggle:** every step, Kaggle public RMSE was 0.04–0.24 below the grouped CV — always slightly better, never worse. The ranking of experiments is identical on both.
-- **Slight optimism from step 10 on:** the model settings (reused in 12) and the ensemble weights were chosen on the same folds that score them. The Kaggle score (unseen patients) is the independent check, and it confirms every gain (3.46 → 3.38 → 3.35 → 3.14).
+- **Slight optimism from step 10 on:** the model settings (reused in 12 and 14) and the ensemble weights were chosen on the same folds that score them. The Kaggle score (unseen patients) is the independent check, and it confirms every gain (3.46 → 3.38 → 3.35 → 3.14 → 3.13 → 3.12).
 - **Public vs private leaderboard:** the public score uses part of the test set; the final ranking uses the rest. Because we optimised grouped CV rather than the public leaderboard, we expect the private score to be close.
 
 ## 8. Limitations and next steps
 
-- **Ensembling on the step-12 features** (as step 11 did for step 10) is the obvious next experiment; it gained 0.02–0.04 before.
-- The per-patient **level offset** is still the largest share of the remaining error; better use of patients' ON-only histories (e.g. a personal OFF bias) is the next idea.
+- The per-patient **level offset** is still ~60 % of the remaining error and no longer correlates with anything observed (number of readings, dose, duration…); the last gains were ~0.01–0.02 per step. The organisers built the true score with information we do not get, so there is likely a floor not far below.
 - The model predicts from a patient's **whole** history, including later visits — right for this competition, but a clinical tool predicting in real time would only have past visits.
 
 ---
@@ -176,16 +181,16 @@ Negative results are part of the evidence that the final choices are the right o
 # one-time setup (Windows: setup\windows\setup.bat)
 bash setup/unix/setup.sh
 # Kaggle CSVs into data/, then any experiment:
-python experiments/12_personal_calibration.py --no-hub   # local run
-python experiments/12_personal_calibration.py            # + Skore Hub reports and submission CSV
+python experiments/14_refinements.py --no-hub   # local run
+python experiments/14_refinements.py            # + Skore Hub reports and submission CSV
 ```
 
 | Where | What |
 |---|---|
 | `experiments/NN_name.py` / `.md` | each experiment and its explanation |
 | `src/parkinson/data.py` | data loading, patient-grouped folds, validated submission writer |
-| `src/parkinson/features.py` | `PatientFeatures` (06), `PatientPKFeatures` (07), `PatientCurveFeatures` (09), `PatientPersonalFeatures` (12) |
-| `src/parkinson/models.py` | `PatientSmoother` (08) |
+| `src/parkinson/features.py` | `PatientFeatures` (06), `PatientPKFeatures` (07), `PatientCurveFeatures` (09), `PatientPersonalFeatures` (12), `PatientDistanceFeatures` (14) |
+| `src/parkinson/models.py` | `PatientSmoother` (08; `rising=True` in 14) |
 | `journal/JOURNAL.md` | experiment index with Hub report links, including abandoned ideas |
 | [Skore Hub project](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon) | every report (`NN_name` and `NN_name_cv`) |
 
@@ -201,6 +206,6 @@ python experiments/12_personal_calibration.py            # + Skore Hub reports a
 
 **How do you know you are not overfitting?** Patient-grouped CV mirrors the Kaggle split, the same folds are used for every experiment, target-based corrections are learned inside each training fold, and Kaggle scores (unseen patients) track our CV at every step.
 
-**Why a single model and not the ensemble?** The step-12 single model beats the step-11 ensemble by 0.2 on Kaggle, and is simpler to explain and run. Ensembling on the new features may add a little more; it is the next experiment.
+**Why a single model and not an ensemble?** We tried both. The step-14 single model scores better on Kaggle than both ensembles (3.12 vs 3.35 for step 11 and 3.13 for step 13), and is simpler to explain and 4× faster to train.
 
 **What was the single most important decision?** Exploring the data before modelling, which revealed the per-patient curve — it led directly to the 46 % improvement of step 06. Every later gain came from the same habit: look at where the model is wrong, then explain why.

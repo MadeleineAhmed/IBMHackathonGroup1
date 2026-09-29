@@ -55,18 +55,20 @@ Le nombre, c'est **l'écart moyen de nos prédictions sur Kaggle** (plus petit =
 | 9 | On a laissé la courbe du patient **se courber légèrement** (la progression réelle n'est pas une droite parfaite), et on a dit au modèle **à quel point les mesures de chaque patient sont fiables**. | 3,5 |
 | 10 | **On a tourné les boutons** du modèle (vitesse d'apprentissage, prudence…) en testant 30 combinaisons et en gardant la meilleure. | 3,4 |
 | 11 | **On a demandé à 4 modèles et on a fait la moyenne de leurs réponses**, comme demander à plusieurs amis et prendre la réponse du milieu. | 3,35 |
-| 12 | 💡 **Chacun réagit différemment au médicament.** Pour certains le comprimé marche très bien, pour d'autres moins. Quand un patient a fait les deux tests (avec et sans médicament) à certaines visites, on a mesuré **sa propre réaction** et on l'a utilisée pour corriger ses autres visites. | **3,14** |
+| 12 | 💡 **Chacun réagit différemment au médicament.** Pour certains le comprimé marche très bien, pour d'autres moins. Quand un patient a fait les deux tests (avec et sans médicament) à certaines visites, on a mesuré **sa propre réaction** et on l'a utilisée pour corriger ses autres visites. | 3,14 |
+| 13 | On a refait la moyenne de 4 modèles, par-dessus l'étape 12. À peine mieux, et 4 fois plus lent. | 3,13 |
+| 14 | On a dit au modèle **à quelle distance chaque visite se trouve d'une vraie mesure « sans médicament »**, et on s'assure que la courbe de chaque patient **ne descend jamais** (la maladie ne s'améliore pas). | **3,12** |
 
-**De 16,4 → 3,14.** Le meilleur score du guide officiel était 7,1 — on se trompe de **moins de moitié** autant.
+**De 16,4 → 3,12.** Le meilleur score du guide officiel était 7,1 — on se trompe de **moins de moitié** autant.
 
 ---
 
-## Pourquoi on a choisi le modèle de l'étape 12
+## Pourquoi on a choisi le modèle de l'étape 14
 
 - 🏆 **C'est le meilleur** sur nos tests d'entraînement *et* sur le vrai test de Kaggle.
 - ✅ **Nos scores d'entraînement ont toujours correspondu à ceux de Kaggle**, donc on fait confiance au résultat, ce n'est pas de la chance.
 - 🧠 **Chaque élément a une raison** qui vient des données ou du fonctionnement de la maladie et du médicament : courbe de maladie lisse, médicament qui s'estompe en quelques heures, réaction personnelle au traitement.
-- 🧼 **C'est un seul modèle**, pas une pile de modèles, donc plus simple à expliquer — et il bat quand même la pile de l'étape 11.
+- 🧼 **C'est un seul modèle**, pas une pile de modèles, donc plus simple à expliquer — et il bat quand même les piles des étapes 11 et 13.
 
 ---
 

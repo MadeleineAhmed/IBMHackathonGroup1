@@ -61,11 +61,13 @@ Every step: patient-grouped 5-fold CV (the decision metric), a Skore Hub report,
 | `09_patient_curve` | curved per-patient trend + reliability | 3.50 | 3.46 |
 | `10_tuning` | tuned model settings (randomized search) | 3.47 | 3.38 |
 | `11_ensemble` | 3 tuned models + 10 % Ridge | 3.43 | 3.35 |
-| **`12_personal_calibration`** | **personal drug-response calibration + missing-value patterns** | **3.29** | **3.14** |
+| `12_personal_calibration` | personal drug-response calibration + missing-value patterns | 3.29 | 3.14 |
+| `13_ensemble` | 11's blend rebuilt on 12's features | 3.26 | 3.13 |
+| **`14_refinements`** | **distance to real OFF readings + rising-only smoothing (single model)** | **3.27** | **3.12** |
 
 The big jump (7.4 → 4.0) comes from using all of a patient's visits: the target is a smooth increasing curve per patient, and each visit's `on`/`off` is a noisy reading of it.
 
-Shared code: `src/parkinson/data.py` (loading, grouped splits, submission writer), `features.py` (patient / timing-correction / curve / personal-calibration features), `models.py` (per-patient smoothing).
+Shared code: `src/parkinson/data.py` (loading, grouped splits, submission writer), `features.py` (patient / timing-correction / curve / personal-calibration / distance features), `models.py` (per-patient smoothing).
 
 ---
 
