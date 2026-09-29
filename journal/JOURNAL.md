@@ -55,6 +55,5 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 | # | Item | Source |
 |---|---|---|
-| B9 | Mixed-effects model (patient random intercept + slope) as a model or stacking input | my-pick |
+| B9 | Empirical-Bayes / mixed-effects shrinkage of each patient's curve toward the population curve (helps patients with few readings) | `skore:11_ensemble` |
 | B10 | Missingness-pattern indicators (which of on/off/ledd/timing are missing), per visit and per patient | my-pick |
-| B11 | Error analysis by cohort / gene / missingness pattern from skore reports, then targeted features | my-pick |

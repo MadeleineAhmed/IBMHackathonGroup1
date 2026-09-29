@@ -223,6 +223,8 @@ Every Kaggle upload requires a **new** key — reusing a key is not valid.
 
 ## Beyond the guide (where we can beat other teams)
 
+> **Status:** B6–B8 and B12 are implemented as experiments `06`–`11` (grouped CV 7.43 → 3.43, Kaggle 7.14 → 3.35); see the Results table in the README and `journal/JOURNAL.md`.
+
 The 5 steps above are the same for every team. The edge comes from encoding how the
 target was built. Each idea is a Backlog row in `journal/JOURNAL.md`; judge every one
 by **grouped-CV RMSE**, not the public leaderboard.
