@@ -1,0 +1,23 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest
+.pytest_cache/
+
+# skore-cli credentials
+.skore
+
+# virtual environments
+.venv/
+
+# competition data (download from Kaggle)
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / IDE
+.DS_Store
+*.swp
