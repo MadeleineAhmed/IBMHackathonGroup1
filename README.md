@@ -44,6 +44,8 @@ Activate the environment later with `.venv\Scripts\Activate.ps1` (Windows), `sou
 
 ## Results
 
+**Presentation / methodology write-up:** [`METHODOLOGY.md`](METHODOLOGY.md) — the problem, evaluation protocol, data findings, every step with its rationale, why the final model was chosen, and what did not work.
+
 Every step: patient-grouped 5-fold CV (the decision metric), a Skore Hub report, a Kaggle submission with its report URL. Details and explanations (in French) in `experiments/NN_name.md`; index in [`journal/JOURNAL.md`](journal/JOURNAL.md).
 
 | Experiment | What changed | Grouped CV RMSE | Kaggle public |
