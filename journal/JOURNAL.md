@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** none yet - next is EDA, then `01_dummy`
-- **Last result:** n/a
+- **Last experiment:** `02_ridge` - done
+- **Last result:** Ridge + missing indicators: RMSE 8.53 (random split) / 8.54 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -39,13 +39,13 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 | Stem | Intent (one line) | Status | Headline result | Design note |
 |---|---|---|---|---|
+| `01_dummy` | DummyRegressor(mean) floor, random row holdout | done | RMSE 16.48 · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42094) | [01_dummy.md](../experiments/01_dummy.md) |
+| `02_ridge` | Median impute + missing indicators + Ridge, 8 numeric features | done | RMSE 8.53 (random) / 8.54 (grouped) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42552) | [02_ridge.md](../experiments/02_ridge.md) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B1 | `01_dummy` - DummyRegressor(mean) floor; default random row holdout as in GUIDED.md step 7 | user (GUIDED.md) |
-| B2 | `02_ridge` - median-impute + Ridge on numeric features; tune alpha; push `comp.reports_["ridge"]` if comparing | user (GUIDED.md) |
 | B3 | `03_hgbr` - HistGradientBoostingRegressor, NaN-native, numeric features, `splitter=cv_splits` (GroupKFold) | user (GUIDED.md) |
 | B4 | `04_tabular_pipeline` - skrub tabular_pipeline with gene/cohort, ids dropped, grouped CV | user (GUIDED.md) |
 | B5 | `05_dataops` - skrub DataOps with GroupKFold on mark_as_X; `evaluate(learner, data={"visits": visits})` | user (GUIDED.md) |

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Script** | `experiments/02_ridge.py` |
-| **Hub key** | `02_ridge` |
+| **Hub key** | `02_ridge` — [rapport](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42552) |
 | **Submission** | `submission_02_ridge.csv` |
 | **Features** | 8 colonnes numériques : `sexM`, `age_at_diagnosis`, `age`, `ledd`, `time_since_intake_on`, `time_since_intake_off`, `on`, `off` |
 
