@@ -123,9 +123,52 @@ See [`context/ml_decisions.md`](context/ml_decisions.md) for full code templates
 
 ---
 
+## The task — plain terms
+
+You're given a table of Parkinson's disease **patient clinic visits**. Each row is one visit; one patient has many rows over time.
+
+For each visit, the clinic measured motor severity with the **MDS-UPDRS scale** (0–132, higher = worse). But those numbers are biased — they depend on when the patient last took their dose, how subjective the examiner was, and whether they even ran the uncomfortable OFF exam at all.
+
+**Our job:** predict the **true, debiased OFF score** for every visit in the test set. This is what the motor severity *actually is*, stripped of all the measurement noise. The hackathon organisers estimated it by running a debiasing model on real multi-cohort records — we have to reconstruct that process.
+
+---
+
+## The 5-step ladder
+
+The hackathon guides you through an explicit progression. Each step = one Kaggle submission:
+
+| Step | What | Why |
+|---|---|---|
+| **1 — Dummy** | Predict the training mean for everyone | Proves infra works: data load → eval → Hub push → CSV upload |
+| **2 — Ridge** | Linear model with median imputation | Checks whether numbers carry any linear signal |
+| **3 — HGBR** | `HistGradientBoostingRegressor` + `GroupKFold` | Handles missing values natively; first honest patient-grouped eval |
+| **4 — tabular_pipeline** | `skrub` auto-encoding | Adds `gene`/`cohort` string columns via automatic encoding |
+| **5 — DataOps** | `skrub` DataOps graph | Groups baked into the graph — nothing can drift or be forgotten |
+
+---
+
+## Two things that will sink you if you get them wrong
+
+**1. CV leakage** — The Kaggle test set is held out **by patient** (entire patients, not random rows). If you use a random row split for local validation, the same patient appears on both sides, your RMSE looks great, and you bomb on the leaderboard. Always use `GroupKFold(n_splits=5)` with `groups=patient_id`.
+
+**2. Missing Hub URL** — Every Kaggle submission **must** have a Skore Hub `EstimatorReport` URL pasted into the Submission Description field on Kaggle. If it's missing, the row is **invalid** even if Kaggle scored your CSV. This is a hard competition rule.
+
+---
+
+## What to do right now (before any coding)
+
+1. **Join Kaggle** and form a team (max 4 people) — do this first
+2. **Create a Skore Hub workspace** at [skore.probabl.ai](https://skore.probabl.ai) — name it **exactly** the same as your Kaggle team name — invite teammates
+3. **Clone `probabl-ai/hackathon`** (the official lab repo — has `scripts/skore-agent` and the `parkinson/` package)
+4. **Run `python scripts/skore-agent`** from that clone — opens browser, sign in, writes `.skore`
+5. **Download the data** from the Kaggle Data tab into `data/`
+6. **Start with the dummy regressor** (J-008 in the journal) — don't skip the floor check
+
+---
+
 ## Journal
 
 All decisions, corrections, and experiment results are logged in [`JOURNAL.md`](JOURNAL.md) with checklist IDs (J-001, J-002, …).
 
-Completed: J-001 (env setup) · J-002 (skore tests) · J-003 (tooling) · J-004 (context docs) · J-005 (hackathon spec ingestion)  
+Completed: J-001 (env setup) · J-002 (skore tests) · J-003 (tooling) · J-004 (context docs) · J-005 (hackathon spec ingestion)
 Next: J-006 (Hub auth) → J-007 (data + EDA) → J-008 (dummy baseline) → …
