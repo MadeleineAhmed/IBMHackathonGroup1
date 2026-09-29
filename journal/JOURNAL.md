@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `04_tabular_pipeline` - done
-- **Last result:** skrub tabular_pipeline (+cohort, gene): RMSE 7.43 ± 0.13 (patient GroupKFold) - no gain over 03_hgbr
+- **Last experiment:** `05_dataops` - done
+- **Last result:** skrub DataOps (same model, GroupKFold baked into the graph): RMSE 7.43 ± 0.13 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -43,12 +43,12 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `02_ridge` | Median impute + missing indicators + Ridge, 8 numeric features | done | RMSE 8.53 (random) / 8.54 (grouped) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42552) | [02_ridge.md](../experiments/02_ridge.md) |
 | `03_hgbr` | HistGradientBoosting, NaN-native, 8 numeric features; first patient-grouped CV | done | RMSE 7.44 ± 0.14 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42609) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42602) | [03_hgbr.md](../experiments/03_hgbr.md) |
 | `04_tabular_pipeline` | skrub tabular_pipeline: + cohort, gene; ids dropped | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42622) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42616) | [04_tabular_pipeline.md](../experiments/04_tabular_pipeline.md) |
+| `05_dataops` | skrub DataOps: TableVectorizer + HGBR, GroupKFold on mark_as_X | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42642) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42636) | [05_dataops.md](../experiments/05_dataops.md) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B5 | `05_dataops` - skrub DataOps with GroupKFold on mark_as_X; `evaluate(learner, data={"visits": visits})` | user (GUIDED.md) |
 | B6 | Patient-level aggregate features from X only (per-patient mean/min/max of on/off, slope vs disease duration, n visits, visit position) | my-pick (context/ml_decisions.md § Beyond the guide) |
 | B7 | Pharmacokinetic features: residual-drug proxy from time_since_intake_off, on/off gap and ratio, ledd-adjusted | my-pick (context/levodopa_domain.md § 7, § 11) |
 | B8 | Monotonic constraint on disease duration (`monotonic_cst`) and/or per-patient smoothing of predictions | my-pick |
