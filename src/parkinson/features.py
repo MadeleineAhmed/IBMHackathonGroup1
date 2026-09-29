@@ -261,3 +261,75 @@ class PatientCurveFeatures(PatientPKFeatures):
         new["p_est_curv"] = curv
         new.index = out.index
         return pd.concat([out, new], axis=1)
+
+
+# --- 12: personal drug response + missing-value patterns -------------------
+
+MISSING_COLS = ["ledd", "on", "off", "time_since_intake_on", "time_since_intake_off"]
+
+
+class PatientPersonalFeatures(PatientCurveFeatures):
+    """``PatientCurveFeatures`` + personal ON calibration + missing patterns.
+
+    **Personal ON calibration.** 39% of the variation of the ON/true ratio
+    is between patients (some respond more strongly to levodopa), but the
+    07 correction uses one population curve. For each patient, visits where
+    both ON and OFF were measured give their personal factor
+    ``est_on / est_off`` (median of logs, shrunk toward 1 with
+    ``n / (n + shrink)``); ON readings are divided by it before being
+    combined. This mostly helps ON-only visits, the hardest ones.
+
+    **Missing-value patterns.** Which of ``ledd``, ``on``, ``off`` and the
+    two timings are missing, as a per-visit code and per-patient shares.
+    """
+
+    def __init__(self, min_obs=4, shrink=2):
+        self.min_obs = min_obs
+        self.shrink = shrink
+
+    def transform(self, X):
+        out = super().transform(X)
+        df = X.reset_index(drop=True)
+        g = df["patient_id"]
+        e_on, e_off = self._estimates(df)
+        new = pd.DataFrame(index=df.index)
+
+        # personal ON factor from visits with both readings
+        both = e_on.notna() & e_off.notna() & (e_off > 5) & (e_on > 0)
+        log_factor = np.log((e_on / e_off).where(both))
+        n_both = both.groupby(g).transform("sum")
+        factor = np.exp(
+            log_factor.groupby(g).transform("median").fillna(0)
+            * n_both / (n_both + self.shrink)
+        )
+        e_on_p = e_on / factor
+        w_on = pd.Series(1 / self.var_on_, index=df.index).where(e_on_p.notna())
+        w_off = pd.Series(1 / self.var_off_, index=df.index).where(e_off.notna())
+        w = w_on.fillna(0) + w_off.fillna(0)
+        est_p = ((e_on_p.fillna(0) * w_on.fillna(0) + e_off.fillna(0) * w_off.fillna(0)) / w).where(w > 0)
+
+        new["p_on_factor"] = factor
+        new["n_both"] = n_both
+        new["est_on_pers"] = e_on_p
+        new["est_pers"] = est_p
+        new["p_est_pers_trend"], new["p_est_pers_slope"], _ = _weighted_trend(
+            df, est_p, w.where(w > 0)
+        )
+        quad = pd.Series(np.nan, index=df.index)
+        for _, idx in df.groupby("patient_id").groups.items():
+            m = est_p.loc[idx].notna().to_numpy()
+            if m.sum() >= self.min_obs:
+                age = df.loc[idx, "age"].to_numpy()
+                center = age[m].mean()
+                coef = np.polyfit(age[m] - center, est_p.loc[idx].to_numpy()[m], 2)
+                quad.loc[idx] = np.polyval(coef, age - center)
+        new["p_est_pers_quad"] = quad
+
+        # missing-value patterns
+        miss = df[MISSING_COLS].isna().astype(int)
+        new["miss_code"] = (miss * [1, 2, 4, 8, 16]).sum(axis=1)
+        for col in MISSING_COLS:
+            new[f"p_miss_{col}"] = miss[col].groupby(g).transform("mean")
+
+        new.index = out.index
+        return pd.concat([out, new], axis=1)
