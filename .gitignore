@@ -41,5 +41,3 @@ submission*.csv
 .vscode/
 .idea/
 
-# upstream lab repo clone (own git repo)
-hackathon-upstream/
