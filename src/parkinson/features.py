@@ -212,3 +212,52 @@ class PatientPKFeatures(PatientFeatures):
         new["p_est_off_trend"], _, _ = _weighted_trend(df, e_off, w_off)
         new.index = out.index
         return pd.concat([out, new], axis=1)
+
+
+# --- 09: curved per-patient trend -----------------------------------------
+
+
+class PatientCurveFeatures(PatientPKFeatures):
+    """``PatientPKFeatures`` + a curved per-patient trend and its reliability.
+
+    The true target bends slightly with age (a quadratic fits a patient to
+    ~0.2 points, a line to ~1.2). Adds, from the timing-corrected estimates
+    ``est``:
+
+    - ``p_est_quad`` / ``p_est_curv``: per-patient quadratic of ``est`` over
+      age (patients with at least ``min_obs`` estimates), at the visit's age,
+      and its curvature;
+    - ``p_est_resid_sd``: spread of ``est`` around the patient's line — how
+      noisy this patient's readings are, i.e. how much to trust the trend;
+    - ``n_obs_est``: number of visits with at least one reading.
+    """
+
+    def __init__(self, min_obs=4):
+        self.min_obs = min_obs
+
+    def transform(self, X):
+        out = super().transform(X)
+        df = X.reset_index(drop=True)
+        g = df["patient_id"]
+        est = pd.Series(out["est"].to_numpy(), index=df.index)
+        obs = est.notna()
+
+        resid = (est - pd.Series(out["p_est_trend"].to_numpy(), index=df.index)).where(obs)
+        new = pd.DataFrame(index=df.index)
+        new["p_est_resid_sd"] = resid.groupby(g).transform("std")
+        new["n_obs_est"] = obs.groupby(g).transform("sum")
+
+        quad = pd.Series(np.nan, index=df.index)
+        curv = pd.Series(np.nan, index=df.index)
+        for _, idx in df.groupby("patient_id").groups.items():
+            m = obs.loc[idx].to_numpy()
+            if m.sum() >= self.min_obs:
+                age = df.loc[idx, "age"].to_numpy()
+                center = age[m].mean()
+                coef = np.polyfit(age[m] - center, est.loc[idx].to_numpy()[m], 2)
+                quad.loc[idx] = np.polyval(coef, age - center)
+                curv.loc[idx] = coef[0]
+        new["p_est_quad"] = quad
+        new["p_est_curv"] = curv
+        new.index = out.index
+        return pd.concat([out, new], axis=1)

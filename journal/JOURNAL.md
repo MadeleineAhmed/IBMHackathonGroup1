@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `08_smoothing` - done
-- **Last result:** 07 + per-patient quadratic smoothing of predictions: RMSE 3.68 ± 0.06 (patient GroupKFold)
+- **Last experiment:** `09_patient_curve` - done
+- **Last result:** curved per-patient trend + reliability features: RMSE 3.50 ± 0.08 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -47,6 +47,7 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `06_patient_features` | PatientFeatures (per-patient summaries + trend of off/on over age) + HGBR | done | RMSE 3.98 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42677) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42665) | [06_patient_features.md](../experiments/06_patient_features.md) |
 | `07_pk_correction` | PatientPKFeatures: ON ratio / OFF bias by dose timing (learned in-fold), weighted patient trend; min_samples_leaf=100 | done | RMSE 3.75 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42746) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42740) | [07_pk_correction.md](../experiments/07_pk_correction.md) |
 | `08_smoothing` | PatientSmoother: per-patient quadratic in age through 07's predictions | done | RMSE 3.68 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42789) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42783) | [08_smoothing.md](../experiments/08_smoothing.md) |
+| `09_patient_curve` | PatientCurveFeatures: per-patient quadratic of corrected estimates, curvature, residual spread, n readings; + 08 smoothing | done | RMSE 3.50 ± 0.08 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42885) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42878) | [09_patient_curve.md](../experiments/09_patient_curve.md) |
 
 ## Backlog
 
