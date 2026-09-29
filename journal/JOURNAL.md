@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `07_pk_correction` - done
-- **Last result:** PK-corrected readings + weighted patient trend + min_samples_leaf=100: RMSE 3.75 ± 0.06 (patient GroupKFold)
+- **Last experiment:** `08_smoothing` - done
+- **Last result:** 07 + per-patient quadratic smoothing of predictions: RMSE 3.68 ± 0.06 (patient GroupKFold)
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -46,12 +46,12 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `05_dataops` | skrub DataOps: TableVectorizer + HGBR, GroupKFold on mark_as_X | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42642) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42636) | [05_dataops.md](../experiments/05_dataops.md) |
 | `06_patient_features` | PatientFeatures (per-patient summaries + trend of off/on over age) + HGBR | done | RMSE 3.98 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42677) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42665) | [06_patient_features.md](../experiments/06_patient_features.md) |
 | `07_pk_correction` | PatientPKFeatures: ON ratio / OFF bias by dose timing (learned in-fold), weighted patient trend; min_samples_leaf=100 | done | RMSE 3.75 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42746) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42740) | [07_pk_correction.md](../experiments/07_pk_correction.md) |
+| `08_smoothing` | PatientSmoother: per-patient quadratic in age through 07's predictions | done | RMSE 3.68 ± 0.06 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42789) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42783) | [08_smoothing.md](../experiments/08_smoothing.md) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B8 | Monotonic constraint on disease duration (`monotonic_cst`) and/or per-patient smoothing of predictions | my-pick |
 | B9 | Mixed-effects model (patient random intercept + slope) as a model or stacking input | my-pick |
 | B10 | Missingness-pattern indicators (which of on/off/ledd/timing are missing), per visit and per patient | my-pick |
 | B11 | Error analysis by cohort / gene / missingness pattern from skore reports, then targeted features | my-pick |
