@@ -15,8 +15,8 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 
 - **Project / dataset:** `ibm-probabl-hackathon` (Kaggle) - regression: predict the debiased "true OFF" MDS-UPDRS motor score (`target`, 0–132) per patient visit
 - **Goal:** lowest RMSE on the Kaggle test set (patients disjoint from train); every submission backed by a Skore Hub report URL
-- **Last experiment:** `03_hgbr` - done
-- **Last result:** HistGradientBoosting, 8 numeric features: RMSE 7.44 ± 0.14 (patient GroupKFold)
+- **Last experiment:** `04_tabular_pipeline` - done
+- **Last result:** skrub tabular_pipeline (+cohort, gene): RMSE 7.43 ± 0.13 (patient GroupKFold) - no gain over 03_hgbr
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2026-09-29
@@ -42,12 +42,12 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `01_dummy` | DummyRegressor(mean) floor, random row holdout | done | RMSE 16.48 · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42094) | [01_dummy.md](../experiments/01_dummy.md) |
 | `02_ridge` | Median impute + missing indicators + Ridge, 8 numeric features | done | RMSE 8.53 (random) / 8.54 (grouped) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42552) | [02_ridge.md](../experiments/02_ridge.md) |
 | `03_hgbr` | HistGradientBoosting, NaN-native, 8 numeric features; first patient-grouped CV | done | RMSE 7.44 ± 0.14 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42609) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42602) | [03_hgbr.md](../experiments/03_hgbr.md) |
+| `04_tabular_pipeline` | skrub tabular_pipeline: + cohort, gene; ids dropped | done | RMSE 7.43 ± 0.13 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42622) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42616) | [04_tabular_pipeline.md](../experiments/04_tabular_pipeline.md) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B4 | `04_tabular_pipeline` - skrub tabular_pipeline with gene/cohort, ids dropped, grouped CV | user (GUIDED.md) |
 | B5 | `05_dataops` - skrub DataOps with GroupKFold on mark_as_X; `evaluate(learner, data={"visits": visits})` | user (GUIDED.md) |
 | B6 | Patient-level aggregate features from X only (per-patient mean/min/max of on/off, slope vs disease duration, n visits, visit position) | my-pick (context/ml_decisions.md § Beyond the guide) |
 | B7 | Pharmacokinetic features: residual-drug proxy from time_since_intake_off, on/off gap and ratio, ledd-adjusted | my-pick (context/levodopa_domain.md § 7, § 11) |
