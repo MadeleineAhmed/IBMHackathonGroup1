@@ -95,7 +95,7 @@ if ($NoHub) {
 # --- Check ---------------------------------------------------------------------
 Step "Checking the environment"
 $env:PYTHONIOENCODING = "utf-8"  # env_check prints unicode check marks
-Invoke-Checked $VPy @("env_check.py")
+Invoke-Checked $VPy @("scripts\env_check.py")
 
 Write-Host ""
 Write-Host "Setup complete." -ForegroundColor Green

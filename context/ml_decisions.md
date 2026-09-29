@@ -3,7 +3,7 @@
 > Last updated: 2026-09-29  
 > Source: probabl-ai/hackathon GUIDED.md + CONTEXT.md  
 > Purpose: Running record of modelling decisions for the levodopa true-OFF regression task.  
-> Each decision links back to its JOURNAL.md checklist entry.
+> Experiments are tracked in `journal/JOURNAL.md`; setup history in `journal/setup_log.md`.
 
 ---
 
@@ -11,7 +11,7 @@
 
 **REGRESSION** — predict a continuous MDS-UPDRS true-OFF motor score (range ~0–132) per patient visit.
 
-> ⚠️ Initial assumption was binary classification. Corrected after reading the hackathon spec (J-005).
+> ⚠️ Initial assumption was binary classification. Corrected after reading the hackathon spec (setup log J-005).
 
 ---
 
@@ -218,3 +218,25 @@ Notes:
 | `05_dataops` | skrub DataOps grouped | After tabular_pipeline |
 
 Every Kaggle upload requires a **new** key — reusing a key is not valid.
+
+---
+
+## Beyond the guide (where we can beat other teams)
+
+The 5 steps above are the same for every team. The edge comes from encoding how the
+target was built. Each idea is a Backlog row in `journal/JOURNAL.md`; judge every one
+by **grouped-CV RMSE**, not the public leaderboard.
+
+| # | Idea | Why it should help |
+|---|---|---|
+| B6 | **Patient-level aggregates from X only** — per-patient mean/median/min/max of `on`/`off`, slope of observed scores vs `time_since_diagnosis`, number of visits, visit position, share of visits with `off` missing | "True OFF" is a smooth per-patient progression; one visit is noisy, all of a patient's visits are not. Test patients also have several visits in `X_test`, so this is legal (no target used). Compute inside each CV fold. |
+| B7 | **Pharmacokinetic features** — residual-drug proxy `exp(-time_since_intake_off / t_half)` (t½ ≈ 1–1.5 h), `on`/`off` gap and ratio, `ledd`-scaled versions | Observed OFF is biased by drug still in the blood; ON typically improves 50–100% over OFF. Gives trees the right shape instead of making them find it. |
+| B8 | **Monotonicity** — `HistGradientBoostingRegressor(monotonic_cst=...)` increasing in disease duration; per-patient isotonic/smooth post-processing of predictions | Neurodegeneration only worsens; a lone jumpy visit prediction is almost surely error. |
+| B9 | **Mixed-effects model** — patient random intercept + slope on disease duration | Classic longitudinal model; strong, explainable, good stacking input. |
+| B10 | **Missingness patterns** — indicators for which of `on`/`off`/`ledd`/timing are missing, per visit and per patient | The pattern encodes cohort protocol and patient state, beyond "off is missing". |
+| B11 | **Error analysis** — residuals by cohort / gene / missingness / visit position from skore reports (`iterate-from-skore`, `audit-ml-pipeline` skills) | Target features where the model is wrong instead of blind tuning. |
+| B12 | **Ensembling** — average/stack the best grouped-CV models | Small, reliable final gain once features are good. |
+
+First EDA question: how many visits per patient, and how smooth is `target` across a
+patient's visits? If it looks like a clean per-patient curve, B6 and B8 are the big wins.
+

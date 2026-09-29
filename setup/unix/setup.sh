@@ -72,7 +72,7 @@ fi
 
 # --- Check ---------------------------------------------------------------------
 step "Checking the environment"
-"$VPY" env_check.py
+"$VPY" scripts/env_check.py
 
 cat <<'EOF'
 

@@ -1,8 +1,8 @@
 """
-env_check.py — Sanity check for the skore hackathon environment.
+scripts/env_check.py — Sanity check for the skore hackathon environment.
 
-Run with:  ./run.sh env_check.py
-       or: ./run.sh -m pytest test_skore.py -v   (for full test suite)
+Run with:  ./run.sh scripts/env_check.py
+       or: ./run.sh -m pytest tests -v   (for full test suite)
 """
 
 import sys

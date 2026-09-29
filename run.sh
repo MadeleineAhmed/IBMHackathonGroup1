@@ -3,9 +3,9 @@
 # without needing to activate anything first.
 #
 # Usage:
-#   ./run.sh env_check.py            # run a script
-#   ./run.sh test_skore.py           # run tests directly (bypasses pytest binary issue)
-#   ./run.sh -m pytest test_skore.py # run pytest as a module (most reliable)
+#   ./run.sh scripts/env_check.py        # environment sanity check
+#   ./run.sh experiments/01_dummy.py     # run an experiment script
+#   ./run.sh -m pytest tests -v          # run the test suite
 #   ./run.sh -c "import skore; print(skore.__version__)"
 
 set -euo pipefail
