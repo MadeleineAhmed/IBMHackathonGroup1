@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackathon IBM × Probabl — Groupe 1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── progress bar ── */
+  #pbar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: #3b82f6; transition: width .4s ease; z-index: 99;
+  }
+
+  /* ── slide container ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px 48px 80px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(40px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .slide.active {
+    opacity: 1; pointer-events: all; transform: translateX(0);
+  }
+  .slide.out {
+    opacity: 0; transform: translateX(-40px);
+  }
+  .inner { max-width: 860px; width: 100%; }
+
+  /* ── typography ── */
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: #60a5fa; margin-bottom: 10px;
+  }
+  h1 { font-size: 48px; font-weight: 900; line-height: 1.1; color: #fff; margin-bottom: 10px; }
+  h1 span { color: #60a5fa; }
+  h2 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .sub { font-size: 17px; color: #94a3b8; margin-bottom: 36px; line-height: 1.5; }
+
+  /* ── KPI row ── */
+  .kpis { display: flex; gap: 14px; flex-wrap: wrap; }
+  .kpi {
+    flex: 1; min-width: 130px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px; padding: 18px 20px; text-align: center;
+    transition: background .2s, transform .2s;
+  }
+  .kpi:hover { background: rgba(255,255,255,.11); transform: translateY(-2px); }
+  .kpi .v { font-size: 32px; font-weight: 800; }
+  .kpi .l { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+
+  /* ── bar chart ── */
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 220px; margin-bottom: 16px; padding-top: 20px; }
+  .bw { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+  .bval { font-size: 11px; font-weight: 700; color: #fff; opacity: 0; transition: opacity .2s; }
+  .bw:hover .bval { opacity: 1; }
+  .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    transition: filter .2s, transform .2s;
+    transform-origin: bottom;
+  }
+  .bw:hover .bar { filter: brightness(1.2); transform: scaleY(1.04); }
+  .bw.sel .bar { outline: 2px solid #fff; outline-offset: 2px; }
+  .blbl { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 2px; }
+  .tip {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    border-left: 3px solid #60a5fa;
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 13px; color: #e2e8f0; line-height: 1.6;
+    display: none; margin-top: 8px;
+  }
+  .tip.show { display: block; }
+  .tip strong { color: #60a5fa; }
+
+  /* ── steps list ── */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 16px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 10px; padding: 14px 18px;
+    transition: background .2s;
+  }
+  .step:hover { background: rgba(255,255,255,.09); }
+  .step .num {
+    min-width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .step .num.blue { background: #1d4ed8; color: #fff; }
+  .step .num.purple { background: #6d28d9; color: #fff; }
+  .step .num.gold { background: #d97706; color: #fff; }
+  .step .body .title { font-size: 15px; font-weight: 700; color: #fff; }
+  .step .body .desc { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+  .step .rmse {
+    margin-left: auto; font-size: 18px; font-weight: 800;
+    flex-shrink: 0; padding-left: 16px;
+  }
+
+  /* ── final slide ── */
+  .final-hero { text-align: center; margin-bottom: 40px; }
+  .final-hero .big { font-size: 100px; font-weight: 900; color: #60a5fa; line-height: 1; }
+  .final-hero .lbl { font-size: 18px; color: #94a3b8; margin-top: 6px; }
+  .final-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .fcard {
+    flex: 1; min-width: 140px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px; padding: 18px; text-align: center;
+  }
+  .fcard .fv { font-size: 28px; font-weight: 800; color: #fff; }
+  .fcard .fl { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .fcard.accent { border-color: #3b82f6; }
+  .fcard.accent .fv { color: #60a5fa; }
+
+  /* ── arrows ── */
+  .arrows {
+    position: fixed; bottom: 24px; right: 32px;
+    display: flex; gap: 10px; z-index: 100;
+  }
+  .arr {
+    width: 46px; height: 46px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.1); color: #fff; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s, transform .15s;
+  }
+  .arr:hover { background: #3b82f6; transform: scale(1.08); }
+  .arr:disabled { opacity: .25; cursor: default; transform: none; }
+
+  /* slide counter */
+  .counter {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px; color: #94a3b8; letter-spacing: .06em;
+  }
+</style>
+</head>
+<body>
+
+<div id="pbar"></div>
+
+<div class="deck">
+
+  <!-- ══ SLIDE 1 — intro ══ -->
+  <section class="slide active" id="s0">
+    <div class="inner">
+      <div class="eyebrow">IBM × Probabl Hackathon · Groupe 1</div>
+      <h1>Prédire la sévérité<br>de <span>Parkinson</span></h1>
+      <p class="sub">Régression du score moteur MDS-UPDRS "vrai OFF" · Évaluation : RMSE (plus bas = mieux)</p>
+      <div class="kpis">
+        <div class="kpi"><div class="v">55 603</div><div class="l">visites patients</div></div>
+        <div class="kpi"><div class="v">0–132</div><div class="l">échelle MDS-UPDRS</div></div>
+        <div class="kpi"><div class="v">14</div><div class="l">expériences</div></div>
+        <div class="kpi" style="border-color:#22c55e33;">
+          <div class="v" style="color:#4ade80;">−81%</div>
+          <div class="l">d'erreur vs point de départ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 2 — ce qu'on a fait ══ -->
+  <section class="slide" id="s1">
+    <div class="inner">
+      <div class="eyebrow">Démarche</div>
+      <h2>Ce qu'on a fait pour améliorer le modèle</h2>
+      <p class="sub">RMSE sur les patients de test cachés de Kaggle (plus bas = mieux). Cliquez sur une barre pour voir le détail de chaque étape.</p>
+
+      <div class="chart" id="chart"></div>
+      <div id="tip" class="tip"></div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 3 — étapes clés ══ -->
+  <section class="slide" id="s2">
+    <div class="inner">
+      <div class="eyebrow">Progression</div>
+      <h2>Les 4 grandes décisions</h2>
+      <p class="sub" style="margin-bottom:20px;">Ce qui a vraiment fait baisser le RMSE (scores Kaggle).</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num blue">1</div>
+          <div class="body">
+            <div class="title">Les valeurs manquantes sont un signal</div>
+            <div class="desc">Un examen OFF absent = le patient n'a été vu qu'en ON. On ajoute un indicateur 0/1 pour chaque donnée manquante.</div>
+          </div>
+          <div class="rmse" style="color:#60a5fa;">16.42 → 8.39</div>
+        </div>
+        <div class="step">
+          <div class="num blue">2</div>
+          <div class="body">
+            <div class="title">Arbres de décision + évaluation par patient</div>
+            <div class="desc">HistGradientBoosting gère les NaN nativement. On évalue avec GroupKFold par patient — pas de triche entre visites.</div>
+          </div>
+          <div class="rmse" style="color:#60a5fa;">8.39 → 7.14</div>
+        </div>
+        <div class="step">
+          <div class="num purple">3</div>
+          <div class="body">
+            <div class="title">Utiliser toutes les visites d'un patient</div>
+            <div class="desc">Chaque patient a une courbe de progression régulière. On ajoute, calculées sur toutes ses visites, sa moyenne, sa tendance et sa variabilité comme features.</div>
+          </div>
+          <div class="rmse" style="color:#a78bfa;">7.14 → 3.80</div>
+        </div>
+        <div class="step">
+          <div class="num gold">4</div>
+          <div class="body">
+            <div class="title">Corriger l'effet du médicament, puis lisser</div>
+            <div class="desc">On corrige chaque mesure selon l'heure de la prise et la réponse propre au patient, puis on lisse ses prédictions en une courbe croissante. Un seul modèle.</div>
+          </div>
+          <div class="rmse" style="color:#fbbf24;">3.80 → 3.12</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 4 — résultat final ══ -->
+  <section class="slide" id="s3">
+    <div class="inner">
+      <div class="final-hero">
+        <div class="eyebrow" style="margin-bottom:14px;">Résultat final · Kaggle public leaderboard</div>
+        <div class="big">3.12</div>
+        <div class="lbl">RMSE · <strong style="color:#4ade80;">−81 %</strong> par rapport au départ · <strong style="color:#4ade80;">−56 %</strong> par rapport au guide officiel</div>
+      </div>
+      <div class="final-grid">
+        <div class="fcard">
+          <div class="fv">16.42</div>
+          <div class="fl">Départ — Dummy</div>
+        </div>
+        <div class="fcard">
+          <div class="fv" style="color:#60a5fa;">8.39</div>
+          <div class="fl">Ridge + manquants</div>
+        </div>
+        <div class="fcard">
+          <div class="fv" style="color:#a78bfa;">7.14</div>
+          <div class="fl">Guide officiel</div>
+        </div>
+        <div class="fcard">
+          <div class="fv" style="color:#4ade80;">3.80</div>
+          <div class="fl">Features patient</div>
+        </div>
+        <div class="fcard accent">
+          <div class="fv">3.12</div>
+          <div class="fl">★ Modèle final</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<div class="counter" id="ctr">1 / 4</div>
+<div class="arrows">
+  <button class="arr" id="bPrev" onclick="move(-1)" disabled>&#8592;</button>
+  <button class="arr" id="bNext" onclick="move(1)">&#8594;</button>
+</div>
+
+<script>
+const bars = [
+  { lbl:'Dummy',    val:16.42, color:'#64748b', tip:'<strong>01 · Point de départ</strong> — Le modèle prédit la même valeur pour tout le monde : la moyenne (37.47). C\'est le plancher à battre. RMSE Kaggle = 16.42.' },
+  { lbl:'Ridge',    val:8.39,  color:'#3b82f6', tip:'<strong>02 · Ridge + indicateurs de manquants</strong> — Équation linéaire. Découverte clé : un <em>off</em> manquant n\'est pas du bruit, c\'est un signal (examen sauté = patient vu seulement en ON). RMSE Kaggle = 8.39 (−49 %).' },
+  { lbl:'HGBR',     val:7.20,  color:'#3b82f6', tip:'<strong>03 · HistGradientBoosting + GroupKFold</strong> — Arbres de décision qui traitent les NaN nativement. Évaluation honnête : on regroupe par patient pour ne pas tricher. RMSE Kaggle = 7.20.' },
+  { lbl:'Tabular',  val:7.17,  color:'#3b82f6', tip:'<strong>04 · Tabular pipeline (skrub)</strong> — On intègre les colonnes texte <em>gene</em> et <em>cohort</em>. Gain marginal : elles ne changent pas la vitesse de progression. RMSE Kaggle = 7.17.' },
+  { lbl:'DataOps',  val:7.14,  color:'#3b82f6', tip:'<strong>05 · DataOps</strong> — Le split par patient est intégré dans le pipeline. Même modèle, processus plus sûr. Fin du guide officiel. RMSE Kaggle = 7.14.' },
+  { lbl:'Patient',  val:3.80,  color:'#7c3aed', tip:'<strong>06 · Features patient ★ — Grand saut</strong> — On exploite toutes les visites d\'un même patient : sa moyenne, sa tendance, sa variabilité. La courbe de progression par patient est le signal le plus fort. RMSE Kaggle = 3.80 (−47 % d\'un coup !).' },
+  { lbl:'PK',       val:3.66,  color:'#7c3aed', tip:'<strong>07 · Correction liée à la prise du médicament</strong> — On apprend de combien le médicament masque les symptômes selon le nombre d\'heures depuis la prise, et on corrige chaque mesure avant de calculer la tendance du patient. RMSE Kaggle = 3.66.' },
+  { lbl:'Lissage',  val:3.59,  color:'#7c3aed', tip:'<strong>08 · Lissage par patient</strong> — Le vrai score est une courbe lisse : on ajuste une parabole à travers les prédictions de chaque patient. RMSE Kaggle = 3.59.' },
+  { lbl:'Courbe',   val:3.46,  color:'#7c3aed', tip:'<strong>09 · Tendance courbe</strong> — La tendance de chaque patient peut se courber, et le modèle sait à quel point ses mesures sont fiables. RMSE Kaggle = 3.46.' },
+  { lbl:'Réglage',  val:3.38,  color:'#7c3aed', tip:'<strong>10 · Réglage des hyperparamètres</strong> — Recherche aléatoire sur 30 combinaisons (vitesse d\'apprentissage, taille des arbres…), toujours évaluée par patient. RMSE Kaggle = 3.38.' },
+  { lbl:'Ensemble', val:3.35,  color:'#7c3aed', tip:'<strong>11 · Ensemble</strong> — Moyenne de 3 HistGradientBoosting réglés différemment + 10 % Ridge : chaque modèle compense une partie des erreurs des autres. RMSE Kaggle = 3.35.' },
+  { lbl:'Perso.',   val:3.14,  color:'#7c3aed', tip:'<strong>12 · Calibration personnelle</strong> — Chaque patient réagit différemment au médicament. Quand il a passé les deux examens (ON et OFF) lors de certaines visites, on mesure sa réponse propre et on corrige ses autres visites. Un seul modèle, meilleur que l\'ensemble. RMSE Kaggle = 3.14.' },
+  { lbl:'Ens. 2',   val:3.13,  color:'#7c3aed', tip:'<strong>13 · Ensemble sur les nouvelles features</strong> — Même mélange qu\'en 11, reconstruit sur les features de 12. Gain faible (−0.01) pour un modèle 4× plus lent. RMSE Kaggle = 3.13.' },
+  { lbl:'Final ★',  val:3.12,  color:'#1d4ed8', tip:'<strong>14 · Modèle final</strong> — Modèle 12 + distance aux vraies mesures OFF + lissage toujours croissant (le vrai score ne baisse jamais). <strong>RMSE final = 3.27 en validation croisée · 3.12 sur Kaggle</strong>.' },
+];
+
+function buildChart() {
+  const c = document.getElementById('chart');
+  const maxH = 180, maxV = 17;
+  bars.forEach((d, i) => {
+    const h = Math.round((d.val / maxV) * maxH);
+    const w = document.createElement('div');
+    w.className = 'bw';
+    w.innerHTML = `<div class="bval">${d.val}</div><div class="bar" style="height:${h}px;background:${d.color}"></div><div class="blbl">${d.lbl}</div>`;
+    w.addEventListener('click', () => {
+      document.querySelectorAll('.bw').forEach(x => x.classList.remove('sel'));
+      w.classList.add('sel');
+      const t = document.getElementById('tip');
+      t.innerHTML = d.tip;
+      t.classList.add('show');
+    });
+    c.appendChild(w);
+  });
+}
+buildChart();
+
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let cur = 0;
+
+function goTo(n) {
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('out');
+  setTimeout(() => slides[cur].classList.remove('out'), 350);
+  cur = n;
+  slides[cur].classList.add('active');
+  document.getElementById('bPrev').disabled = cur === 0;
+  document.getElementById('bNext').disabled = cur === total - 1;
+  document.getElementById('pbar').style.width = ((cur / (total - 1)) * 100) + '%';
+  document.getElementById('ctr').textContent = (cur + 1) + ' / ' + total;
+}
+
+function move(d) {
+  const n = cur + d;
+  if (n >= 0 && n < total) goTo(n);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   move(-1);
+});
+</script>
+</body>
+</html>
