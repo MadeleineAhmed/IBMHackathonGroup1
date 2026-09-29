@@ -50,10 +50,10 @@ journal/setup_log.md. Domain and modelling background lives in context/.
 | `09_patient_curve` | PatientCurveFeatures: per-patient quadratic of corrected estimates, curvature, residual spread, n readings; + 08 smoothing | done | RMSE 3.50 ± 0.08 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/42885) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/42878) | [09_patient_curve.md](../experiments/09_patient_curve.md) |
 | `10_tuning` | Randomized search (30 settings) on grouped CV + column-selection test; lr 0.02, 1200 trees, 63 leaves, leaf>=200, 80% columns | done | RMSE 3.47 ± 0.08 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/43284) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/43278) | [10_tuning.md](../experiments/10_tuning.md) |
 | `11_ensemble` | VotingRegressor: top-3 tuned HGBR (30% each) + Ridge (10%) on PatientCurveFeatures, per-patient smoothing | done | RMSE 3.43 ± 0.07 (grouped CV) · [Hub](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/estimators/43438) · [CV](https://skore.probabl.ai/ibmhackathongroup1/ibm-hackathon/cross-validations/43426) | [11_ensemble.md](../experiments/11_ensemble.md) |
+| `B9_bayes_curve` | Empirical-Bayes posterior of each patient's quadratic curve (prior learned from training patients' target curves, readings as noisy observations) added as features | abandoned | grouped CV 3.472 vs 3.467 without (Bayes curve alone 5.42): the trees already extract this from n readings + residual spread | — (prototype only) |
 
 ## Backlog
 
 | # | Item | Source |
 |---|---|---|
-| B9 | Empirical-Bayes / mixed-effects shrinkage of each patient's curve toward the population curve (helps patients with few readings) | `skore:11_ensemble` |
 | B10 | Missingness-pattern indicators (which of on/off/ledd/timing are missing), per visit and per patient | my-pick |
