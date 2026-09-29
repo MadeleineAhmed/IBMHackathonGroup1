@@ -39,18 +39,26 @@ Download from the [Kaggle Data tab](https://www.kaggle.com/competitions/ibm-prob
 
 ## Environment setup
 
-```bash
-# Activate the skore pyenv virtualenv (fish shell)
-source activate.fish
+**Teammates: run the setup script once after cloning.** You need Python 3.12+ and must already be a member of the Hub workspace [`ibmhackathongroup1`](https://skore.probabl.ai/ibmhackathongroup1).
 
-# Or run any script without activating:
-./run.sh your_script.py
-./run.sh -m pytest test_skore.py -v
-./run.sh env_check.py   # full environment sanity check
+| OS | Command |
+|---|---|
+| **Windows** | Double-click `setup\windows\setup.bat` (or in PowerShell: `powershell -ExecutionPolicy Bypass -File setup\windows\setup.ps1`) |
+| **macOS / Linux** | `bash setup/unix/setup.sh` |
+
+The script creates `.venv/`, installs `requirements.txt` plus the local `parkinson` package, installs the lab skills for Bob into `.bob/skills/`, signs you in to Skore Hub (writes `.skore`, never committed) and runs `env_check.py`. Add `-NoHub` (Windows) or `--no-hub` (macOS/Linux) to skip the Hub step. Safe to re-run.
+
+Afterwards:
+
+```bash
+# Windows
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate      # or: ./run.sh your_script.py
 ```
 
-Requirements are managed via `pyenv virtualenv skore` (Python 3.14.7).  
-All dependencies are already installed — no `pip install` needed for core work.
+Then download the competition CSVs from Kaggle into `data/`.
 
 ---
 
@@ -114,11 +122,21 @@ See [`context/ml_decisions.md`](context/ml_decisions.md) for full code templates
 ├── run.sh                  # Run any Python script/command without activating
 ├── env_check.py            # Environment sanity check (all imports + smoke test)
 ├── test_skore.py           # 7 smoke tests for skore v0.26 API
+├── requirements.txt        # Team dependencies (skore / skore-cli / skrub pinned)
+├── pyproject.toml          # Declares src/parkinson/ as an installable package
+├── setup/
+│   ├── windows/setup.bat   # Windows: double-click (runs setup.ps1)
+│   └── unix/setup.sh       # macOS / Linux: bash setup/unix/setup.sh
+├── scripts/skore-agent     # Lab script: Hub sign-in, writes .skore
+├── src/parkinson/
+│   └── hub.py              # load_skore_credentials() for Hub pushes
+├── .bob/skills/            # Lab skills for Bob (installed by the setup script)
 ├── context/
 │   ├── levodopa_domain.md  # Clinical background, dataset schema, modelling pitfalls
 │   ├── skore_api_reference.md  # Correct skore v0.26 API + Hub integration
 │   └── ml_decisions.md     # Modelling decisions, feature set, full code templates
-└── data/                   # NOT in git — download from Kaggle
+├── data/                   # NOT in git — download from Kaggle
+└── .skore                  # NOT in git — Hub API key, written by scripts/skore-agent
 ```
 
 ---

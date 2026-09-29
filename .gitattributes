@@ -1,0 +1,5 @@
+# Keep line endings correct per platform regardless of each clone's git config.
+*.sh    text eol=lf
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+scripts/skore-agent text eol=lf

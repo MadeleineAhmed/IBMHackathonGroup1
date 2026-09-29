@@ -21,3 +21,9 @@ data/
 # OS / IDE
 .DS_Store
 *.swp
+
+# upstream lab repo clone (own git repo)
+hackathon-upstream/
+
+# editable-install metadata
+*.egg-info/

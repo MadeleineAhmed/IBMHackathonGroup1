@@ -1,0 +1,13 @@
+# Team environment for the IBM x Probabl hackathon.
+# Installed by setup/unix/setup.sh or setup/windows/setup.bat.
+# skore / skore-cli / skrub are pinned: the lab guide and our code
+# depend on their exact APIs.
+skore==0.26.0
+skore-cli==0.4.1
+skrub==0.10.1
+scikit-learn
+pandas
+numpy
+scipy
+matplotlib
+pytest

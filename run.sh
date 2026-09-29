@@ -10,12 +10,19 @@
 
 set -euo pipefail
 
-PYENV_VERSION=skore
-PYTHON="$(PYENV_VERSION=$PYENV_VERSION pyenv which python)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Prefer the team .venv (created by setup/unix/setup.sh); fall back to the
+# 'skore' pyenv virtualenv.
+if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
+    PYTHON="$REPO_ROOT/.venv/bin/python"
+else
+    PYTHON="$(PYENV_VERSION=skore pyenv which python)"
+fi
 
 if [[ $# -eq 0 ]]; then
     echo "Usage: $0 [-m module | -c command | script.py] [args...]"
-    echo "       Runs the given Python script/command inside the 'skore' virtualenv."
+    echo "       Runs the given Python script/command inside the project environment."
     exit 1
 fi
 
