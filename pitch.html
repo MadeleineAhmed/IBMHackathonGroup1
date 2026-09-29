@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group 1 — Pitch</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --ink: #1d1d1b;
+    --muted: #6b6a66;
+    --line: #d9d6cc;
+    --accent: #1f5f8b;
+    --est: #b4541c;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-snap-type: y mandatory; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 20px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    counter-reset: slide;
+  }
+  section {
+    min-height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    position: relative;
+    counter-increment: slide;
+  }
+  section::after {
+    content: counter(slide) " / 7";
+    position: absolute;
+    right: 32px;
+    bottom: 24px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  h1, h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: normal;
+    line-height: 1.2;
+    margin: 0 0 24px;
+  }
+  h1 { font-size: 52px; }
+  h2 { font-size: 38px; }
+  p { margin: 0 0 16px; max-width: 34em; }
+  .kicker {
+    font-size: 15px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .big { font-size: 26px; }
+  .muted { color: var(--muted); }
+  strong { font-weight: 600; }
+  ol { padding-left: 1.2em; margin: 0; }
+  ol li { margin-bottom: 18px; max-width: 32em; }
+  ol li strong { display: block; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font: 13px system-ui, sans-serif; fill: var(--muted); }
+  .rule { border-top: 1px solid var(--line); margin: 28px 0; }
+  .number { font-family: Georgia, serif; font-size: 64px; line-height: 1; color: var(--accent); }
+
+  /* patient chart */
+  .chart { position: relative; margin: 4px 0 8px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 15px; color: var(--muted); margin-bottom: 6px; }
+  .controls label { cursor: pointer; white-space: nowrap; }
+  .controls input { margin-right: 6px; vertical-align: -1px; }
+  button {
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    border-radius: 3px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .sample { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--ink); vertical-align: 4px; margin-right: 8px; }
+  .sample.est { border-top: 3px dashed var(--est); }
+  button[aria-pressed="true"] .sample:not(.est) { border-top-color: var(--bg); }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+  .hidden { opacity: 0; pointer-events: none; }
+  .fade { transition: opacity .5s; }
+  .pt { cursor: default; }
+  .pt:hover { stroke-width: 3; }
+  .tip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 14px;
+    line-height: 1.35;
+    padding: 6px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+    transform: translate(-50%, calc(-100% - 12px));
+    display: none;
+  }
+
+  /* result bars */
+  .bar { transform-box: fill-box; transform-origin: left; transform: scaleX(0); transition: transform 1s ease-out; }
+  .bars.in .bar { transform: scaleX(1); }
+  .bars.in .bar:nth-of-type(2) { transition-delay: .25s; }
+  .bars.in .bar:nth-of-type(3) { transition-delay: .5s; }
+
+  @media (max-width: 600px) {
+    body { font-size: 17px; }
+    h1 { font-size: 36px; }
+    h2 { font-size: 28px; }
+    section { padding: 40px 16px; }
+    section::after { right: 16px; }
+    .number { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section>
+  <div class="kicker">IBM × Probabl Hackathon · Group 1</div>
+  <h1>Estimating how far someone's Parkinson's has really progressed</h1>
+  <p class="big muted">From noisy clinic measurements, for patients we have never seen.</p>
+</section>
+
+<!-- 2 -->
+<section>
+  <div class="kicker">The problem</div>
+  <h2>The score doctors measure is not the patient's real state</h2>
+  <p>At every visit, a doctor rates how severe the motor symptoms are. That number is distorted:</p>
+  <ol>
+    <li><strong>The medicine hides the symptoms.</strong> Measured an hour after a pill, a patient looks much better than they really are.</li>
+    <li><strong>The test without medicine is often skipped.</strong> It is unpleasant, so 4 visits out of 10 have no such score.</li>
+    <li><strong>Scoring is subjective.</strong> Two doctors won't give the same number.</li>
+  </ol>
+  <p style="margin-top:12px">Our job: <strong>recover the real score</strong> at every visit.</p>
+</section>
+
+<!-- 3 -->
+<section>
+  <div class="kicker">What we noticed</div>
+  <h2>Each patient follows a smooth curve. Each visit is a noisy reading of it.</h2>
+  <div class="controls">
+    <label><input type="checkbox" id="show-off" checked><span class="swatch" style="background:var(--accent)"></span>measured without medicine</label>
+    <label><input type="checkbox" id="show-on" checked><span class="swatch" style="border:1.5px solid #9a978f"></span>measured with medicine</label>
+    <button type="button" id="btn-real" aria-pressed="false"><span class="sample"></span><span class="label">Show the real score</span></button>
+    <button type="button" id="btn-est" aria-pressed="false"><span class="sample est"></span><span class="label">Show our estimate</span></button>
+  </div>
+  <div class="chart" id="chart">
+    <svg id="patient" viewBox="0 0 600 320" role="img" aria-label="One real patient: measured scores scatter around a smooth real score that rises with age"></svg>
+    <div class="tip" id="tip"></div>
+  </div>
+  <p class="muted" id="chart-note">One real patient from the training data. Looking at a single visit, you can be 20 points off. Looking at all of them together, the curve becomes clear.</p>
+</section>
+
+<!-- 4 -->
+<section>
+  <div class="kicker">What we built</div>
+  <h2>Three ideas, each one checked against the data</h2>
+  <ol>
+    <li><strong>Use every visit of the patient, not just one.</strong> The model sees the patient's whole history: their typical score and which way it is heading. This alone halved the error.</li>
+    <li><strong>Undo the effect of the medicine.</strong> We learned how much a pill hides symptoms depending on how long ago it was taken, and adjusted for each patient's own response to the drug.</li>
+    <li><strong>Draw a smooth curve through the result.</strong> The disease only gets worse, gradually, so each patient's predictions are smoothed into a gentle rising curve.</li>
+  </ol>
+</section>
+
+<!-- 5 -->
+<section>
+  <div class="kicker">Results</div>
+  <h2>Less than half the error of the official approach</h2>
+  <svg class="bars" id="bars" viewBox="0 0 640 210" role="img" aria-label="Average error: 16.4 guessing the average, 7.1 official guide model, 3.1 our model">
+    <g font-size="15">
+      <text x="0" y="40" style="fill:var(--ink)">Guessing the average</text>
+      <text x="0" y="110" style="fill:var(--ink)">Official guide's model</text>
+      <text x="0" y="180" style="fill:var(--ink)">Our model</text>
+      <rect class="bar" x="230" y="22" width="360" height="26" fill="#cfccc2"/>
+      <rect class="bar" x="230" y="92" width="156" height="26" fill="#9a978f"/>
+      <rect class="bar" x="230" y="162" width="68" height="26" fill="var(--accent)"/>
+      <text x="598" y="40" style="fill:var(--ink)">16.4</text>
+      <text x="394" y="110" style="fill:var(--ink)">7.1</text>
+      <text x="306" y="180" style="fill:var(--ink)">3.12</text>
+    </g>
+  </svg>
+  <p class="muted">Average error in score points on Kaggle's hidden test patients (lower is better).</p>
+  <div class="rule"></div>
+  <div class="number">−56%</div>
+  <p>error compared with the best model of the official guide.</p>
+</section>
+
+<!-- 6 -->
+<section>
+  <div class="kicker">Why you can trust it</div>
+  <h2>Tested the way it will be used</h2>
+  <ol>
+    <li><strong>Always tested on patients the model had never seen,</strong> exactly like the competition. No patient was ever split between learning and testing.</li>
+    <li><strong>Our own test scores matched Kaggle's every time,</strong> for every version we submitted, so the result is not luck.</li>
+    <li><strong>One change at a time, every step recorded</strong> with its report on Skore Hub, including the ideas that did not work.</li>
+  </ol>
+</section>
+
+<!-- 7 -->
+<section>
+  <div class="kicker">In one sentence</div>
+  <h2>We stopped reading each visit on its own and started reading the patient.</h2>
+  <p class="big muted">That, plus correcting for the medicine, took the error from 7.1 to 3.1.</p>
+  <p class="muted" style="margin-top:32px">Thank you — Group 1</p>
+</section>
+
+<script>
+// Patient XDVS5301 (training data). est = our model's prediction from the
+// cross-validation fold where this patient was NOT used for training.
+// [age, measured with medicine (on), measured without medicine (off), real score, our estimate]
+const ROWS = [
+  [71.6, null, 5, 18.2, 16.8], [72.6, 12, 20, 20.4, 19.5], [73.7, 10, 16, 22.9, 22.3],
+  [74.3, 15, null, 24.3, 23.8], [75.1, 4, 7, 26.2, 25.8], [76.9, 16, 26, 30.5, 30.0],
+  [77.3, 18, 29, 31.5, 30.9], [78.0, 12, 21, 33.2, 32.5], [78.7, 19, 27, 34.9, 34.0],
+  [79.3, 23, 40, 36.4, 35.3], [80.4, 20, 35, 39.1, 37.5], [81.6, 24, 31, 42.1, 39.9],
+];
+const T = {
+  age: "age", score: "score",
+  on: "with medicine", off: "without medicine", real: "real score", est: "our estimate",
+  showReal: "Show the real score", hideReal: "Hide the real score",
+  showEst: "Show our estimate", hideEst: "Hide our estimate",
+  noteEst: "Our estimate comes from a model that never saw this patient. Here it stays within about 1 point of the real score; on average across all patients, we are about 3 points off.",
+};
+
+const svg = document.getElementById("patient");
+const NS = "http://www.w3.org/2000/svg";
+const X = a => 60 + (a - 71) * (500 / 11);
+const Y = s => 290 - s * (250 / 45);
+const el = (tag, attrs, parent = svg) => {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  parent.appendChild(n);
+  return n;
+};
+
+// grid + axes
+for (const s of [0, 10, 20, 30, 40]) {
+  el("line", { x1: 60, x2: 560, y1: Y(s), y2: Y(s), stroke: "var(--line)" });
+  el("text", { x: 50, y: Y(s) + 4, "text-anchor": "end" }).textContent = s;
+}
+el("text", { x: 50, y: 40, "text-anchor": "end" }).textContent = T.score;
+for (const a of [72, 74, 76, 78, 80, 82]) {
+  el("text", { x: X(a), y: 310, "text-anchor": "middle" }).textContent = a === 82 ? T.age + " 82" : a;
+}
+
+const line = (col, cls, dash) => el("polyline", {
+  class: "fade hidden " + cls, fill: "none", stroke: col, "stroke-width": 3,
+  "stroke-dasharray": dash || "none",
+  points: ROWS.map(r => X(r[0]) + "," + Y(col === "var(--est)" ? r[4] : r[3])).join(" "),
+});
+const realLine = line("var(--ink)", "real");
+const estLine = line("var(--est)", "est", "7 5");
+
+const onGroup = el("g", { class: "fade" });
+const offGroup = el("g", { class: "fade" });
+const tip = document.getElementById("tip");
+const chart = document.getElementById("chart");
+
+function tipText(r, kind) {
+  const value = kind === "on" ? r[1] : r[2];
+  let t = T.age + " " + r[0] + " — " + (kind === "on" ? T.on : T.off) + ": <b>" + value + "</b>";
+  if (!realLine.classList.contains("hidden")) t += "<br>" + T.real + ": " + r[3];
+  if (!estLine.classList.contains("hidden")) t += "<br>" + T.est + ": " + r[4];
+  return t;
+}
+for (const r of ROWS) {
+  for (const kind of ["on", "off"]) {
+    const v = kind === "on" ? r[1] : r[2];
+    if (v === null) continue;
+    const c = el("circle", kind === "on"
+      ? { class: "pt", cx: X(r[0]), cy: Y(v), r: 6, fill: "var(--bg)", stroke: "#9a978f", "stroke-width": 1.5 }
+      : { class: "pt", cx: X(r[0]), cy: Y(v), r: 6, fill: "var(--accent)", stroke: "var(--accent)", "stroke-width": 1 },
+      kind === "on" ? onGroup : offGroup);
+    const show = () => {
+      const box = svg.getBoundingClientRect(), k = box.width / 600;
+      tip.innerHTML = tipText(r, kind);
+      tip.style.left = (X(r[0]) * k) + "px";
+      tip.style.top = (Y(v) * k) + "px";
+      tip.style.display = "block";
+    };
+    c.addEventListener("mouseenter", show);
+    c.addEventListener("click", show);
+    c.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+}
+
+document.getElementById("show-on").addEventListener("change", e => onGroup.classList.toggle("hidden", !e.target.checked));
+document.getElementById("show-off").addEventListener("change", e => offGroup.classList.toggle("hidden", !e.target.checked));
+
+function toggle(btn, target, showLabel, hideLabel, onShow) {
+  btn.addEventListener("click", () => {
+    const on = btn.getAttribute("aria-pressed") !== "true";
+    btn.setAttribute("aria-pressed", on);
+    btn.querySelector(".label").textContent = on ? hideLabel : showLabel;
+    target.classList.toggle("hidden", !on);
+    if (on && onShow) onShow();
+  });
+}
+toggle(document.getElementById("btn-real"), realLine, T.showReal, T.hideReal);
+toggle(document.getElementById("btn-est"), estLine, T.showEst, T.hideEst,
+  () => { document.getElementById("chart-note").textContent = T.noteEst; });
+
+// grow the result bars when their slide comes into view
+const bars = document.getElementById("bars");
+new IntersectionObserver((entries, obs) => {
+  if (entries[0].isIntersecting) { bars.classList.add("in"); obs.disconnect(); }
+}, { threshold: 0.5 }).observe(bars);
+</script>
+</body>
+</html>
